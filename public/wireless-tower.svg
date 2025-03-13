@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Base foundation -->
+    <path d="M70 180H130L100 160L70 180Z" fill="white" fill-opacity="0.9"/>
+    
+    <!-- Main tower structure -->
+    <path d="M90 160V40M110 160V40" stroke="white" stroke-width="4"/>
+    
+    <!-- Cross supports -->
+    <path d="M85 150H115M85 130H115M85 110H115M85 90H115M85 70H115M85 50H115" stroke="white" stroke-width="3"/>
+    <path d="M90 145L110 135M90 125L110 115M90 105L110 95M90 85L110 75M90 65L110 55" stroke="white" stroke-width="2"/>
+    
+    <!-- Top section -->
+    <path d="M85 40H115" stroke="white" stroke-width="4"/>
+    
+    <!-- Antennas -->
+    <path d="M80 35L90 40L80 45" stroke="white" stroke-width="3"/>
+    <path d="M120 35L110 40L120 45" stroke="white" stroke-width="3"/>
+    <path d="M95 30L100 40L105 30" stroke="white" stroke-width="3"/>
+    
+    <!-- Signal waves - left antenna -->
+    <path d="M65 35C70 30 75 30 80 35" stroke="white" stroke-width="2" stroke-opacity="0.8"/>
+    <path d="M60 30C68 22 77 22 85 30" stroke="white" stroke-width="2" stroke-opacity="0.6"/>
+    <path d="M55 25C65 15 80 15 90 25" stroke="white" stroke-width="2" stroke-opacity="0.4"/>
+    
+    <!-- Signal waves - right antenna -->
+    <path d="M120 35C125 30 130 30 135 35" stroke="white" stroke-width="2" stroke-opacity="0.8"/>
+    <path d="M115 30C123 22 132 22 140 30" stroke="white" stroke-width="2" stroke-opacity="0.6"/>
+    <path d="M110 25C120 15 135 15 145 25" stroke="white" stroke-width="2" stroke-opacity="0.4"/>
+    
+    <!-- Signal waves - center antenna -->
+    <path d="M95 25C100 20 105 20 110 25" stroke="white" stroke-width="2" stroke-opacity="0.8"/>
+    <path d="M90 20C98 12 107 12 115 20" stroke="white" stroke-width="2" stroke-opacity="0.6"/>
+    <path d="M85 15C95 5 110 5 120 15" stroke="white" stroke-width="2" stroke-opacity="0.4"/>
+    
+    <!-- Warning light -->
+    <circle cx="100" cy="35" r="2" fill="white">
+        <animate attributeName="opacity" values="1;0.3;1" dur="2s" repeatCount="indefinite"/>
+    </circle>
+</svg> 

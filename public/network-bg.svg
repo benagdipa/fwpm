@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="400" height="400" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <pattern id="networkGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+        <!-- Connection dots -->
+        <circle cx="2" cy="2" r="2" fill="white"/>
+        <circle cx="38" cy="38" r="2" fill="white"/>
+        
+        <!-- Connection lines -->
+        <path d="M 4 4 L 36 36" stroke="white" stroke-width="0.5" stroke-opacity="0.5"/>
+        <path d="M 38 2 L 2 38" stroke="white" stroke-width="0.5" stroke-opacity="0.5"/>
+    </pattern>
+    <rect width="400" height="400" fill="url(#networkGrid)"/>
+</svg> 

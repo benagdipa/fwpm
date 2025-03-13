@@ -1,0 +1,520 @@
+html,
+body {
+  padding: 0;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
+    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+  overflow-x: hidden;
+  /* Add smooth transition for theme changes */
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Page transition animations */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.page-transition-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.page-transition-exit-active {
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+/* next-themes dark mode styling for Material-UI elements */
+:root {
+  --background: #ffffff;
+  --foreground: #111827;
+  --muted: #f5f5f5;
+  --primary: #2563eb;
+  --primary-light: #60a5fa;
+  --primary-dark: #1d4ed8;
+}
+
+.dark {
+  --background: #111827;
+  --foreground: #f8fafc;
+  --muted: #1f2937;
+  --primary: #60a5fa;
+  --primary-light: #93c5fd;
+  --primary-dark: #2563eb;
+}
+
+/* Global link styling */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Add transition for basic MUI components - removed DataGrid related components */
+.MuiPaper-root,
+.MuiCard-root,
+.MuiAppBar-root,
+.MuiDrawer-paper,
+.MuiButton-root,
+.MuiIconButton-root,
+.MuiChip-root,
+.MuiTab-root,
+.MuiMenuItem-root,
+.MuiAccordion-root,
+.MuiListItem-root,
+.MuiAlert-root {
+  transition: background-color 0.3s ease, 
+              color 0.3s ease, 
+              border-color 0.3s ease, 
+              box-shadow 0.3s ease,
+              transform 0.2s ease !important;
+}
+
+.leaflet-container {
+  width: 100%;
+  height: 500px;
+  max-height: 70vh;
+  border-radius: 8px;
+}
+
+/* Base responsive container */
+.responsive-container {
+  width: 100%;
+  padding: 16px;
+  margin: 0 auto;
+}
+
+/* MUI overrides - removed DataGrid related overrides */
+.MuiCard-root, .MuiPaper-root {
+  overflow: visible !important;
+}
+
+/* Fix iOS Safari 100vh issue */
+@supports (-webkit-touch-callout: none) {
+  .min-h-screen {
+    min-height: -webkit-fill-available;
+  }
+}
+
+/* Responsive grid adjustments */
+@media (max-width: 600px) {
+  .MuiGrid-item {
+    padding: 8px !important;
+  }
+  
+  .MuiContainer-root {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+  
+  .MuiCard-root, .MuiPaper-root {
+    border-radius: 12px !important;
+  }
+  
+  .leaflet-container {
+    height: 350px;
+    border-radius: 8px;
+  }
+  
+  h1.MuiTypography-root {
+    font-size: 1.5rem !important;
+  }
+  
+  h2.MuiTypography-root {
+    font-size: 1.25rem !important;
+  }
+  
+  .MuiButton-root {
+    padding: 6px 16px !important;
+  }
+}
+
+/* Medium screens */
+@media (min-width: 601px) and (max-width: 960px) {
+  .MuiGrid-item {
+    padding: 12px !important;
+  }
+  
+  h1.MuiTypography-root {
+    font-size: 1.75rem !important;
+  }
+}
+
+/* Improved scrolling experience */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+html:not(.dark) ::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+html:not(.dark) ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+html:not(.dark) ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* Dark mode scrollbar */
+html.dark ::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Implementation Tracker Specific Styles */
+.implementation-stats-card {
+  border-radius: 16px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  overflow: hidden !important;
+}
+
+.implementation-stats-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* Enhanced Button Styles */
+.MuiButton-root {
+  border-radius: 12px !important;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease !important;
+  font-weight: 500 !important;
+}
+
+.MuiButton-contained {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
+}
+
+.MuiButton-contained:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.MuiButton-outlined:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+.MuiButton-root:active {
+  transform: translateY(-1px) !important;
+}
+
+.MuiButton-root.Mui-disabled {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Icon Button Styles */
+.MuiIconButton-root {
+  transition: transform 0.3s ease, background-color 0.3s ease !important;
+}
+
+.MuiIconButton-root:hover {
+  transform: translateY(-2px);
+}
+
+.action-button {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px !important;
+}
+
+.implementation-status-pill {
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.implementation-category-tag {
+  border-radius: 4px;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  font-weight: 500;
+}
+
+.implementation-table-container {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.implementation-filter-container {
+  transition: all 0.3s ease;
+  max-height: 300px;
+  overflow: hidden;
+}
+
+.implementation-filter-container.collapsed {
+  max-height: 0;
+}
+
+.implementation-task-row {
+  transition: background-color 0.2s ease;
+}
+
+.implementation-task-row:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+html.dark .implementation-task-row:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.implementation-search-field {
+  transition: width 0.3s ease;
+  width: 250px;
+}
+
+.implementation-search-field:focus {
+  width: 300px;
+}
+
+@media (max-width: 600px) {
+  .implementation-search-field, .implementation-search-field:focus {
+    width: 100%;
+  }
+  
+  .implementation-stats-card {
+    border-radius: 12px;
+  }
+  
+  .implementation-table-container {
+    border-radius: 8px;
+  }
+}
+
+/* Status indicator animation */
+@keyframes pulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.7;
+  }
+  70% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.7;
+  }
+}
+
+.status-indicator-pulse {
+  animation: pulse 2s infinite;
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+/* Loading effects */
+.shimmer-effect {
+  background: linear-gradient(90deg, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    rgba(255, 255, 255, 0.2) 50%, 
+    rgba(255, 255, 255, 0.1) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+html.dark .shimmer-effect {
+  background: linear-gradient(90deg, 
+    rgba(30, 30, 30, 0.1) 0%, 
+    rgba(60, 60, 60, 0.2) 50%, 
+    rgba(30, 30, 30, 0.1) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Hover effects for interactive elements */
+.MuiButton-root:hover,
+.MuiIconButton-root:hover,
+.MuiListItemButton-root:hover {
+  transform: translateY(-2px);
+}
+
+.MuiButton-root:active,
+.MuiIconButton-root:active,
+.MuiListItemButton-root:active {
+  transform: translateY(0);
+}
+
+/* Micro-animations for form elements */
+.MuiTextField-root,
+.MuiOutlinedInput-root,
+.MuiSelect-select {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.MuiTextField-root:focus-within,
+.MuiOutlinedInput-root.Mui-focused,
+.MuiSelect-select.Mui-focused {
+  transform: scale(1.01);
+}
+
+/* Animation for navigation links */
+.nav-link {
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: var(--primary);
+  transition: width 0.3s ease;
+}
+
+.nav-link:hover::after,
+.nav-link.active::after {
+  width: 100%;
+}
+
+/* Animation keyframes for theme toggle and other effects */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.2;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.2;
+  }
+}
+
+@keyframes twinkle {
+  0% {
+    opacity: 0.2;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.3);
+  }
+  100% {
+    opacity: 0.2;
+    transform: scale(1);
+  }
+}
+
+/* Add a subtle zoom effect when content loads */
+.content-zoom-in {
+  animation: zoomIn 0.4s ease-out forwards;
+}
+
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Add subtle fade animations for alert components */
+.MuiAlert-root {
+  animation: slideInAlert 0.4s ease-out forwards;
+}
+
+@keyframes slideInAlert {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Add subtle animations for dialog components */
+.MuiDialog-paper {
+  animation: scaleInDialog 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes scaleInDialog {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Add subtle animations for snackbar/toast components */
+.MuiSnackbar-root {
+  animation: slideUpSnackbar 0.3s ease-out forwards;
+}
+
+@keyframes slideUpSnackbar {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Enhance button hover effects */
+.MuiButton-contained:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px -5px rgba(0, 0, 0, 0.2);
+}
+
+/* Add animation for list items */
+.MuiListItem-root {
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.MuiListItem-root:hover {
+  transform: translateX(4px);
+} 

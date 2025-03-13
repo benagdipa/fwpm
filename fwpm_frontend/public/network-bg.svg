@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
+  <g fill="none" stroke="#ffffff" stroke-width="2" opacity="0.35">
+    <!-- Connection Lines -->
+    <line x1="100" y1="100" x2="300" y2="200" />
+    <line x1="300" y1="200" x2="500" y2="150" />
+    <line x1="500" y1="150" x2="700" y2="100" />
+    <line x1="100" y1="100" x2="150" y2="350" />
+    <line x1="150" y1="350" x2="300" y2="500" />
+    <line x1="300" y1="500" x2="500" y2="550" />
+    <line x1="500" y1="550" x2="700" y2="700" />
+    <line x1="100" y1="700" x2="300" y2="600" />
+    <line x1="300" y1="600" x2="500" y2="650" />
+    <line x1="500" y1="650" x2="700" y2="700" />
+    <line x1="100" y1="700" x2="150" y2="450" />
+    <line x1="150" y1="450" x2="300" y2="300" />
+    <line x1="300" y1="300" x2="500" y2="250" />
+    <line x1="500" y1="250" x2="700" y2="100" />
+    <line x1="100" y1="100" x2="200" y2="250" />
+    <line x1="200" y1="250" x2="400" y2="400" />
+    <line x1="400" y1="400" x2="600" y2="350" />
+    <line x1="600" y1="350" x2="700" y2="700" />
+    
+    <!-- Large Node Points -->
+    <circle cx="100" cy="100" r="10" fill="#ffffff" />
+    <circle cx="300" cy="200" r="8" fill="#ffffff" />
+    <circle cx="500" cy="150" r="8" fill="#ffffff" />
+    <circle cx="700" cy="100" r="10" fill="#ffffff" />
+    <circle cx="150" cy="350" r="6" fill="#ffffff" />
+    <circle cx="300" cy="500" r="8" fill="#ffffff" />
+    <circle cx="500" cy="550" r="8" fill="#ffffff" />
+    <circle cx="700" cy="700" r="10" fill="#ffffff" />
+    <circle cx="100" cy="700" r="10" fill="#ffffff" />
+    <circle cx="300" cy="600" r="8" fill="#ffffff" />
+    <circle cx="500" cy="650" r="8" fill="#ffffff" />
+    <circle cx="150" cy="450" r="6" fill="#ffffff" />
+    <circle cx="300" cy="300" r="8" fill="#ffffff" />
+    <circle cx="500" cy="250" r="8" fill="#ffffff" />
+    <circle cx="200" cy="250" r="6" fill="#ffffff" />
+    <circle cx="400" cy="400" r="10" fill="#ffffff" />
+    <circle cx="600" cy="350" r="8" fill="#ffffff" />
+    
+    <!-- Small Node Points -->
+    <circle cx="150" cy="150" r="3" fill="#ffffff" />
+    <circle cx="200" cy="175" r="3" fill="#ffffff" />
+    <circle cx="400" cy="175" r="3" fill="#ffffff" />
+    <circle cx="600" cy="125" r="3" fill="#ffffff" />
+    <circle cx="125" cy="225" r="3" fill="#ffffff" />
+    <circle cx="225" cy="425" r="3" fill="#ffffff" />
+    <circle cx="400" cy="525" r="3" fill="#ffffff" />
+    <circle cx="600" cy="625" r="3" fill="#ffffff" />
+    <circle cx="200" cy="650" r="3" fill="#ffffff" />
+    <circle cx="400" cy="625" r="3" fill="#ffffff" />
+    <circle cx="600" cy="675" r="3" fill="#ffffff" />
+    <circle cx="125" cy="575" r="3" fill="#ffffff" />
+    <circle cx="225" cy="375" r="3" fill="#ffffff" />
+    <circle cx="400" cy="275" r="3" fill="#ffffff" />
+    <circle cx="600" cy="175" r="3" fill="#ffffff" />
+    <circle cx="150" cy="175" r="3" fill="#ffffff" />
+    <circle cx="300" cy="325" r="3" fill="#ffffff" />
+    <circle cx="500" cy="375" r="3" fill="#ffffff" />
+    <circle cx="650" cy="525" r="3" fill="#ffffff" />
+  </g>
+
+  <!-- Animated Pulse Circles -->
+  <circle cx="400" cy="400" r="15" fill="none" stroke="#ffffff" stroke-width="2">
+    <animate attributeName="r" from="15" to="50" dur="3s" repeatCount="indefinite" />
+    <animate attributeName="opacity" from="0.8" to="0" dur="3s" repeatCount="indefinite" />
+  </circle>
+  <circle cx="100" cy="100" r="10" fill="none" stroke="#ffffff" stroke-width="2">
+    <animate attributeName="r" from="10" to="40" dur="4s" repeatCount="indefinite" />
+    <animate attributeName="opacity" from="0.8" to="0" dur="4s" repeatCount="indefinite" />
+  </circle>
+  <circle cx="700" cy="700" r="10" fill="none" stroke="#ffffff" stroke-width="2">
+    <animate attributeName="r" from="10" to="40" dur="3.5s" repeatCount="indefinite" />
+    <animate attributeName="opacity" from="0.8" to="0" dur="3.5s" repeatCount="indefinite" />
+  </circle>
+</svg> 

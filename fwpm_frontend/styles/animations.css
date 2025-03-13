@@ -1,0 +1,242 @@
+/* 
+ * animations.css
+ * Collection of animations for micro-interactions throughout the application
+ */
+
+/* Button press animation */
+@keyframes button-press {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Subtle float animation for cards */
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+/* Notification bell shake */
+@keyframes bell-shake {
+  0% {
+    transform: rotate(0);
+  }
+  15% {
+    transform: rotate(15deg);
+  }
+  30% {
+    transform: rotate(-15deg);
+  }
+  45% {
+    transform: rotate(8deg);
+  }
+  60% {
+    transform: rotate(-8deg);
+  }
+  75% {
+    transform: rotate(4deg);
+  }
+  85% {
+    transform: rotate(-4deg);
+  }
+  92% {
+    transform: rotate(2deg);
+  }
+  100% {
+    transform: rotate(0);
+  }
+}
+
+/* Fade in animation */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Slide down animation */
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Slide up animation */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Slide in from left */
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Slide in from right */
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Scale in animation */
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Bounce animation */
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Spinner animation */
+@keyframes spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Ripple effect */
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(10);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(30);
+    opacity: 0;
+  }
+}
+
+/* Apply animations to elements */
+
+/* Apply float animation to cards with this class */
+.float-on-hover:hover {
+  animation: float 2s ease-in-out infinite;
+}
+
+/* Apply shake animation to notification icons */
+.notification-bell:hover {
+  animation: bell-shake 0.8s ease-in-out;
+}
+
+/* Apply ripple to buttons */
+.ripple-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple-effect::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  transform: scale(0);
+  animation: ripple 0.6s linear;
+  animation-play-state: paused;
+}
+
+.ripple-effect:active::after {
+  animation-play-state: running;
+}
+
+/* Fade in elements with data-animate="fade-in" attribute */
+[data-animate="fade-in"] {
+  animation: fade-in 0.5s ease-out forwards;
+}
+
+/* Slide down elements with data-animate="slide-down" attribute */
+[data-animate="slide-down"] {
+  animation: slide-down 0.5s ease-out forwards;
+}
+
+/* Slide up elements with data-animate="slide-up" attribute */
+[data-animate="slide-up"] {
+  animation: slide-up 0.5s ease-out forwards;
+}
+
+/* Staggered animations for lists */
+.staggered-list > *:nth-child(1) { animation-delay: 0.1s; }
+.staggered-list > *:nth-child(2) { animation-delay: 0.2s; }
+.staggered-list > *:nth-child(3) { animation-delay: 0.3s; }
+.staggered-list > *:nth-child(4) { animation-delay: 0.4s; }
+.staggered-list > *:nth-child(5) { animation-delay: 0.5s; }
+.staggered-list > *:nth-child(6) { animation-delay: 0.6s; }
+.staggered-list > *:nth-child(7) { animation-delay: 0.7s; }
+.staggered-list > *:nth-child(8) { animation-delay: 0.8s; }
+.staggered-list > *:nth-child(9) { animation-delay: 0.9s; }
+.staggered-list > *:nth-child(10) { animation-delay: 1s; }
+
+/* Loading spinner */
+.loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spinner 0.8s linear infinite;
+}
+
+.dark .loading-spinner {
+  border-color: rgba(255, 255, 255, 0.1);
+  border-top-color: currentColor;
+} 
