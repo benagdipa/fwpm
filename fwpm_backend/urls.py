@@ -17,6 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
+from fwpm_backend.apps.api_views import health_check
 from fwpm_backend.apps.authentication.views import AuthViewSet
 from fwpm_backend.apps.user_management.views import UserManagementViewSet
 from fwpm_backend.apps.network_performance.views import NetworkPerformanceViewSet
@@ -39,5 +40,7 @@ router.register(r'tool-usage-logs', ToolUsageLogViewSet)
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
+    path('api/health-check/', health_check, name='health_check'),
+    path('api/auth/email-login/', AuthViewSet.as_view({'post': 'email_login'}), name='email_login'),
     path('api-auth/', include('rest_framework.urls')),
 ]

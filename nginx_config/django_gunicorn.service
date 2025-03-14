@@ -1,0 +1,32 @@
+[Unit]
+Description=Django Gunicorn Service for FWPM Application
+After=network.target
+Wants=network-online.target
+Documentation=https://docs.gunicorn.org/en/stable/deploy.html
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/fwpm
+ExecStart=/var/www/fwpm/venv/bin/gunicorn \
+    --workers 3 \
+    --bind 127.0.0.1:8000 \
+    --access-logfile /var/log/gunicorn/access.log \
+    --error-logfile /var/log/gunicorn/error.log \
+    --capture-output \
+    --log-level info \
+    fwpm_backend.wsgi:application
+Restart=on-failure
+RestartSec=5s
+KillMode=mixed
+TimeoutStopSec=5
+PrivateTmp=true
+
+# Environment variables
+Environment="DJANGO_SETTINGS_MODULE=fwpm_backend.settings"
+Environment="PYTHONPATH=/var/www/fwpm"
+# Add any other environment variables your application needs
+# Environment="VARIABLE_NAME=variable_value"
+
+[Install]
+WantedBy=multi-user.target 

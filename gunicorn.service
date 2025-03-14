@@ -1,0 +1,21 @@
+[Unit]
+Description=gunicorn daemon for FWPM Django application
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/fwpm
+ExecStart=/var/www/fwpm/venv/bin/gunicorn \
+    --access-logfile - \
+    --workers 3 \
+    --bind unix:/var/www/fwpm/fwpm.sock \
+    fwpm_backend.wsgi:application
+Environment="DJANGO_ENV=production"
+Restart=on-failure
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=gunicorn
+
+[Install]
+WantedBy=multi-user.target 

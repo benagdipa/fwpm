@@ -1,0 +1,25 @@
+[Unit]
+Description=NextJS Application for FWPM
+After=network.target
+Wants=network-online.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/fwpm/fwpm_frontend
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+RestartSec=5s
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=nextjs
+TimeoutStopSec=10
+
+# Environment variables
+Environment="NODE_ENV=production"
+Environment="PORT=3000"
+Environment="NEXT_PUBLIC_API_URL=https://fwpm.nwas.nbnco.net.au/api/"
+Environment="CORS_ALLOWED_ORIGINS=https://fwpm.nwas.nbnco.net.au"
+
+[Install]
+WantedBy=multi-user.target 

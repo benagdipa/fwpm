@@ -75,9 +75,19 @@ export const AuthProvider = ({ children }) => {
       }
       
       try {
-        // Try to login with proper parameter format (username and password)
-        console.log('=== AuthContext: attempting login API call');
-        const data = await authAPI.login({ username, password });
+        let data;
+        
+        // Check if we're doing email-only login or username+password login
+        if (!password) {
+          // Email-only login (new streamlined method)
+          console.log('=== AuthContext: attempting email-only login API call');
+          data = await authAPI.emailLogin({ email });
+        } else {
+          // Traditional username+password login (fallback for compatibility)
+          console.log('=== AuthContext: attempting traditional login API call');
+          data = await authAPI.login({ username, password });
+        }
+        
         console.log('=== AuthContext: login API call successful, response:', data);
         
         // Check if token is present in response
@@ -115,7 +125,7 @@ export const AuthProvider = ({ children }) => {
           }
           
           console.log('=== AuthContext: login successful');
-          return true;
+          return { success: true };
         } catch (profileError) {
           console.error('=== AuthContext: Error fetching profile after login:', profileError);
           
@@ -125,7 +135,7 @@ export const AuthProvider = ({ children }) => {
           setUser(data.user);
           
           console.log('=== AuthContext: login partially successful (no profile data)');
-          return true;
+          return { success: true };
         }
       } catch (loginError) {
         console.error('=== AuthContext: login attempt failed:', loginError);
@@ -135,183 +145,17 @@ export const AuthProvider = ({ children }) => {
           console.error('=== AuthContext: login error response data:', loginError.response.data);
         }
         
-        // If login fails with 401 or 400, try auto-registration for NBN emails
-        if (loginError.response && (loginError.response.status === 401 || loginError.response.status === 400)) {
-          console.log('=== AuthContext: attempting auto-registration for NBN email');
-          
-          // Extract names from email
-          let firstName = '';
-          let lastName = '';
-          
-          // Parse name from the combined format email (e.g., johnsmith@nbnco.com.au)
-          // Since there's no delimiter, we'll need to use a different approach
-          
-          // Common last name prefixes to help with splitting
-          const commonLastNamePrefixes = [
-            'smith', 'jones', 'williams', 'brown', 'wilson', 'taylor', 'johnson', 
-            'white', 'martin', 'anderson', 'thompson', 'nguyen', 'thomas', 'walker', 
-            'harris', 'lee', 'ryan', 'robinson', 'kelly', 'king', 'davis', 'wright', 
-            'green', 'evans', 'wood', 'clarke', 'roberts', 'hall', 'jackson', 'allen',
-            'scott', 'hill', 'young', 'morris', 'cook', 'bell', 'cooper', 'morgan',
-            'parker'
-          ];
-          
-          // Try to find a known last name in the username
-          let splitIndex = -1;
-          for (const prefix of commonLastNamePrefixes) {
-            const index = username.toLowerCase().indexOf(prefix);
-            if (index > 0) {
-              splitIndex = index;
-              break;
-            }
-          }
-          
-          if (splitIndex > 0) {
-            // If we found a likely last name
-            firstName = username.substring(0, splitIndex);
-            lastName = username.substring(splitIndex);
-          } else {
-            // If we couldn't identify a clear split, use a simple approach:
-            // If username is longer than 5 characters, take first half as first name and second half as last name
-            // Otherwise, use the whole string as first name
-            if (username.length > 5) {
-              const middle = Math.floor(username.length / 2);
-              firstName = username.substring(0, middle);
-              lastName = username.substring(middle);
-            } else {
-              firstName = username;
-              lastName = ""; // Empty last name if we can't determine it
-            }
-          }
-          
-          // Capitalize first letter of names
-          firstName = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
-          if (lastName) {
-            lastName = lastName.charAt(0).toUpperCase() + lastName.slice(1).toLowerCase();
-          }
-          
-          // Register the new user
-          const userData = {
-            username,
-            email,
-            password: password, // Use the provided default password initially
-            first_name: firstName,
-            last_name: lastName,
-            is_active: true
-          };
-          
-          console.log('=== AuthContext: registering new user with data:', { ...userData, password: '[REDACTED]' });
-          
-          try {
-            console.log('=== AuthContext: calling register API');
-            const registerData = await authAPI.register(userData);
-            console.log('=== AuthContext: register API call successful, response:', registerData);
-            
-            // Store token immediately after registration
-            console.log('=== AuthContext: storing token in localStorage');
-            localStorage.setItem('token', registerData.token);
-            
-            try {
-              // Get the full profile after registration
-              console.log('=== AuthContext: fetching user profile after registration');
-              const profileData = await authAPI.getProfile();
-              console.log('=== AuthContext: profile data received after registration:', profileData);
-              
-              const newUserData = { ...registerData.user, ...profileData, first_login: true };
-              console.log('=== AuthContext: combined new user data:', newUserData);
-              
-              console.log('=== AuthContext: storing user data in localStorage');
-              localStorage.setItem('user', JSON.stringify(newUserData));
-              
-              console.log('=== AuthContext: updating user state');
-              setUser(newUserData);
-              setPasswordChangeRequired(true);
-              
-              console.log('=== AuthContext: auto-registration successful');
-              return true;
-            } catch (profileError) {
-              console.error('=== AuthContext: Error fetching profile after registration:', profileError);
-              
-              // Even if profile fetch fails, we can still log the user in with basic data
-              console.log('=== AuthContext: Using basic user data from registration response');
-              const basicUserData = { ...registerData.user, first_login: true };
-              localStorage.setItem('user', JSON.stringify(basicUserData));
-              setUser(basicUserData);
-              setPasswordChangeRequired(true);
-              
-              console.log('=== AuthContext: auto-registration partially successful (no profile data)');
-              return true;
-            }
-          } catch (registerError) {
-            console.error('=== AuthContext: auto-registration failed:', registerError);
-            
-            if (registerError.response) {
-              console.error('=== AuthContext: registration error response status:', registerError.response.status);
-              const responseData = registerError.response.data;
-              console.error('=== AuthContext: registration error response data:', responseData);
-              
-              if (responseData) {
-                if (responseData.email && responseData.email.includes('already exists')) {
-                  return { success: false, message: 'This email is already registered. Please use the password reset option if you forgot your password.' };
-                }
-                
-                if (responseData.username && responseData.username.includes('already exists')) {
-                  return { success: false, message: 'This username is already taken. Please contact support for assistance.' };
-                }
-                
-                if (responseData.password) {
-                  return { success: false, message: `Password error: ${responseData.password}` };
-                }
-                
-                // Extract any error message available
-                for (const key in responseData) {
-                  if (Array.isArray(responseData[key])) {
-                    return { success: false, message: responseData[key].join('. ') };
-                  } else if (typeof responseData[key] === 'string') {
-                    return { success: false, message: responseData[key] };
-                  }
-                }
-              }
-            }
-            
-            return { success: false, message: 'Registration failed. Please contact support.' };
-          }
-        }
-        
-        // Check for specific error messages in the login error
-        if (loginError.response && loginError.response.data) {
-          const data = loginError.response.data;
-          
-          if (data.non_field_errors) {
-            return { success: false, message: data.non_field_errors.join('. ') };
-          }
-          
-          if (data.detail) {
-            return { success: false, message: data.detail };
-          }
-          
-          // Try to extract any error message
-          const errorMessages = [];
-          for (const key in data) {
-            if (Array.isArray(data[key])) {
-              errorMessages.push(...data[key]);
-            } else if (typeof data[key] === 'string') {
-              errorMessages.push(data[key]);
-            }
-          }
-          
-          if (errorMessages.length > 0) {
-            return { success: false, message: errorMessages.join('. ') };
-          }
-        }
-        
-        throw loginError;
+        // Return detailed error information
+        return { 
+          success: false,
+          message: loginError.response?.data?.error || 'Login failed. Please try again.',
+          error: loginError
+        };
       }
     } catch (error) {
-      console.error('=== AuthContext: login/registration unhandled error:', error);
-      return { success: false, message: 'An unexpected error occurred. Please try again later.' };
+      console.error('=== AuthContext: Unexpected error during login:', error);
+      return { success: false, message: 'An unexpected error occurred', error };
     } finally {
-      console.log('=== AuthContext: login process complete, setting loading to false');
       setLoading(false);
     }
   };

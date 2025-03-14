@@ -73,12 +73,17 @@ class NetworkPerformance(models.Model):
 
     def save(self, *args, **kwargs):
         """Override save to handle cache invalidation"""
-        # Invalidate relevant caches
-        cache_keys = [
-            f"network_perf:{self.site}:*",
-            f"network_perf:*:{self.cell_id}:*",
-        ]
-        for key in cache_keys:
-            cache.delete_pattern(key)
+        # Invalidate relevant caches - use direct cache keys instead of patterns
+        # since Django's default cache backend doesn't support delete_pattern
         
+        # Clear site-specific caches
+        site_key = f"network_perf:{self.site}:{self.cell_id}:*"
+        for key in [
+            f"network_perf:{self.site}:{self.cell_id}:None:None",
+            f"network_perf:{self.site}:None:None:None",
+            f"network_perf:None:{self.cell_id}:None:None",
+        ]:
+            cache.delete(key)
+        
+        # Call the original save method
         super().save(*args, **kwargs)

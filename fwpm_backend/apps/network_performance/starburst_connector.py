@@ -9,26 +9,26 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 import time
 import threading
+from django.conf import settings
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Starburst Enterprise config - this could be moved to settings in a production app
-# and loaded from environment variables
+# Starburst Enterprise config - load from environment variables
 STARBURST_CONFIG = {
-    "host": "dv.cdl.nbnco.net.au",
-    "port": 443,
-    "http_scheme": "https",
-    "user": "SVC_THO_PRD_FW_PERF",
-    "password": "extent90@SUPPORT",
-    "verify": False,
-    "catalog": "hive"
+    "host": os.environ.get('STARBURST_HOST', 'dv.cdl.nbnco.net.au'),
+    "port": int(os.environ.get('STARBURST_PORT', 443)),
+    "http_scheme": os.environ.get('STARBURST_SCHEME', 'https'),
+    "user": os.environ.get('STARBURST_USER', ''),
+    "password": os.environ.get('STARBURST_PASSWORD', ''),
+    "verify": os.environ.get('STARBURST_VERIFY', 'False').lower() == 'true',
+    "catalog": os.environ.get('STARBURST_CATALOG', 'hive')
 }
 
 # Connection pool configuration
-MAX_POOL_SIZE = 10
+MAX_POOL_SIZE = int(os.environ.get('STARBURST_MAX_POOL_SIZE', 10))
 connection_pool = []
 pool_lock = threading.Lock()
 

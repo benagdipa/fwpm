@@ -69,18 +69,13 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-  const [apiStatus, setApiStatus] = useState('unknown');
   const [backendStatus, setBackendStatus] = useState({ checked: false, reachable: false, message: '' });
-  const [directLoginResult, setDirectLoginResult] = useState(null);
-  const [showTestingTools, setShowTestingTools] = useState(false);
   const { login, isAuthenticated } = useAuth();
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
-  // Test direct backend connectivity
+  // Test direct backend connectivity (hidden from users)
   useEffect(() => {
     const testBackendConnection = async () => {
       try {
@@ -101,9 +96,11 @@ const Login = () => {
             message: data.backend?.error || 'Cannot connect to backend server',
             data: data
           });
+          // Log connection error for admin monitoring, but don't show to users
+          console.error('Backend connection error:', data.backend?.error || 'Cannot connect to backend server');
         }
       } catch (error) {
-        console.error('>>> Backend connection test failed:', error);
+        console.error('Backend connection test failed:', error);
         setBackendStatus({
           checked: true,
           reachable: false,
@@ -131,6 +128,7 @@ const Login = () => {
     
     if (!email) {
       setError('Email is required');
+      setLoading(false);
       return;
     }
     
@@ -138,6 +136,7 @@ const Login = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setError('Please enter a valid email address');
+      setLoading(false);
       return;
     }
     
@@ -146,16 +145,13 @@ const Login = () => {
     
     if (!isNbnEmail) {
       setError('Only nbnco.com.au email domains are authorized to access this system');
+      setLoading(false);
       return;
     }
     
-    // Set a default password for NBN users during auto-registration
-    // This will be prompted to change on first login
-    const defaultPassword = 'nbnDefaultPass2024!';
-    
     try {
-      // Call the login function from the auth context
-      const result = await login(email, defaultPassword);
+      // Call the login function from the auth context with email only
+      const result = await login(email);
       
       if (result.success) {
         // Redirect to dashboard on successful login
@@ -193,54 +189,16 @@ const Login = () => {
         }
       } else if (error.request) {
         // The request was made but no response was received
-        setError('No response from server. Please check your connection and try again.');
+        setError('Unable to connect to the server. Please check your connection and try again.');
       } else {
         // Something happened in setting up the request that triggered an Error
         setError('An error occurred. Please try again.');
       }
+      
+      // Log the error for admins but don't show to users
+      console.error('Login error:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleTogglePassword = () => {
-    setShowPassword((prev) => !prev);
-  };
-  
-  // Test direct login to backend API
-  const handleDirectLoginTest = async () => {
-    setDirectTestLoading(true);
-    setDirectTestResult(null);
-    
-    if (!email) {
-      setError('Email is required for test');
-      return;
-    }
-    
-    try {
-      const response = await fetch('/api/test-login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-      
-      const result = await response.json();
-      
-      setDirectTestResult({
-        success: response.ok,
-        status: response.status,
-        data: result
-      });
-    } catch (error) {
-      console.error('>>> Direct login test error:', error);
-      setDirectTestResult({
-        success: false,
-        error: error.message
-      });
-    } finally {
-      setDirectTestLoading(false);
     }
   };
   
@@ -269,6 +227,7 @@ const Login = () => {
             </Slide>
           )}
           
+          {/* Backend error alert with user-friendly message */}
           {backendStatus.checked && !backendStatus.reachable && (
             <Alert 
               severity="error" 
@@ -279,37 +238,11 @@ const Login = () => {
               }}
             >
               <Typography variant="body2">
-                <strong>Backend server connection error:</strong> {backendStatus.message}
+                We're currently experiencing technical difficulties.
               </Typography>
               <Typography variant="body2" mt={1}>
-                Please make sure the backend server is running at the configured URL.
+                Please try again later or contact support if the issue persists.
               </Typography>
-            </Alert>
-          )}
-          
-          {apiStatus === 'disconnected' && (
-            <Alert 
-              severity="warning" 
-              sx={{ 
-                mb: { xs: 2, sm: 3 }, 
-                borderRadius: 1,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
-              }}
-            >
-              Cannot connect to the API server. Please check your network connection.
-            </Alert>
-          )}
-          
-          {apiStatus === 'error' && (
-            <Alert 
-              severity="warning" 
-              sx={{ 
-                mb: { xs: 2, sm: 3 }, 
-                borderRadius: 1,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
-              }}
-            >
-              The API server is experiencing issues. Please try again later.
             </Alert>
           )}
           
@@ -336,18 +269,10 @@ const Login = () => {
           
           <Box sx={{ 
             display: 'flex', 
-            justifyContent: 'space-between', 
+            justifyContent: 'flex-end', 
             alignItems: 'center',
             mb: { xs: 2, sm: 2.5 },
           }}>
-            <Button 
-              variant="text" 
-              size="small" 
-              onClick={() => setShowTestingTools(!showTestingTools)}
-            >
-              {showTestingTools ? 'Hide Testing Tools' : 'Show Testing Tools'}
-            </Button>
-            
             <Link href="/forgot-password" passHref>
               <Typography 
                 component="span" 
@@ -365,113 +290,6 @@ const Login = () => {
               </Typography>
             </Link>
           </Box>
-          
-          {showTestingTools && (
-            <Box sx={{ 
-              mb: 3, 
-              p: 2, 
-              border: '1px dashed', 
-              borderColor: 'divider',
-              borderRadius: 1,
-              backgroundColor: 'background.paper' 
-            }}>
-              <Typography variant="subtitle2" gutterBottom>
-                Testing & Diagnostics
-              </Typography>
-              
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" gutterBottom fontWeight="medium">
-                  Backend Status: {backendStatus.checked ? 
-                    (backendStatus.reachable ? 
-                      '✅ Reachable' : 
-                      '❌ Not Reachable - ' + backendStatus.message
-                    ) : 
-                    '⏳ Checking...'
-                  }
-                </Typography>
-                <Typography variant="body2" gutterBottom fontWeight="medium">
-                  API Status: {apiStatus === 'connected' ? 
-                    '✅ Connected' : 
-                    (apiStatus === 'disconnected' ? 
-                      '❌ Disconnected' : 
-                      (apiStatus === 'error' ? 
-                        '⚠️ Error' : 
-                        '⏳ Unknown'
-                      )
-                    )
-                  }
-                </Typography>
-                
-                {backendStatus.checked && !backendStatus.reachable && backendStatus.data?.network_diagnostics && (
-                  <Box sx={{ mt: 1, mb: 1, p: 1, backgroundColor: 'error.light', borderRadius: 1, opacity: 0.8 }}>
-                    <Typography variant="body2" sx={{ color: 'error.contrastText' }}>
-                      {backendStatus.data.network_diagnostics.message}
-                    </Typography>
-                    <ul style={{ margin: '4px 0', paddingLeft: '20px' }}>
-                      {backendStatus.data.network_diagnostics.suggested_actions.map((action, i) => (
-                        <li key={i}>
-                          <Typography variant="caption" sx={{ color: 'error.contrastText' }}>
-                            {action}
-                          </Typography>
-                        </li>
-                      ))}
-                    </ul>
-                  </Box>
-                )}
-              </Box>
-              
-              <Button 
-                variant="outlined" 
-                size="small" 
-                onClick={handleDirectLoginTest}
-                disabled={loading || !email}
-                sx={{ mr: 1 }}
-              >
-                Test Direct Login
-              </Button>
-              
-              <Button 
-                variant="outlined" 
-                size="small" 
-                onClick={async () => {
-                  try {
-                    const response = await fetch('/api/token-debug');
-                    const data = await response.json();
-                    console.log('Token debug data:', data);
-                    setDirectLoginResult({
-                      type: 'token_debug',
-                      ...data
-                    });
-                  } catch (err) {
-                    console.error('Token debug error:', err);
-                    setDirectLoginResult({
-                      type: 'token_debug_error',
-                      error: err.message
-                    });
-                  }
-                }}
-                sx={{ mr: 1 }}
-              >
-                Debug Token
-              </Button>
-              
-              <Button 
-                variant="outlined" 
-                size="small" 
-                onClick={() => window.location.reload()}
-              >
-                Refresh Page
-              </Button>
-              
-              {directLoginResult && (
-                <Box sx={{ mt: 2, p: 1, bgcolor: 'background.default', borderRadius: 1, maxHeight: 150, overflow: 'auto' }}>
-                  <Typography variant="caption" component="pre" sx={{ whiteSpace: 'pre-wrap', fontSize: '0.7rem' }}>
-                    {JSON.stringify(directLoginResult, null, 2)}
-                  </Typography>
-                </Box>
-              )}
-            </Box>
-          )}
           
           <SubmitButton
             type="submit"

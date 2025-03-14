@@ -123,7 +123,7 @@ class NetworkPerformanceViewSet(viewsets.ModelViewSet):
         )
         return Response(stats)
     
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get'], url_path='lte-metrics')
     def lte_metrics(self, request):
         """
         Get LTE performance metrics from Starburst Enterprise with fallback to mock data.
@@ -273,7 +273,7 @@ class NetworkPerformanceViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get'], url_path='nr-metrics')
     def nr_metrics(self, request):
         """
         Get NR performance metrics from Starburst Enterprise with fallback to mock data.
@@ -411,7 +411,7 @@ class NetworkPerformanceViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get'], url_path='sites')
     def sites(self, request):
         """
         Get available sites (for dropdown selection)
@@ -427,7 +427,7 @@ class NetworkPerformanceViewSet(viewsets.ModelViewSet):
         ]
         return Response(sites)
     
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get'], url_path='dashboard-summary')
     def dashboard_summary(self, request):
         """
         Get summarized data for dashboard with fallback to mock data if Starburst connection fails
@@ -685,20 +685,21 @@ class NetworkPerformanceViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get'], url_path='hierarchical-metrics')
     def hierarchical_metrics(self, request):
         """
         Get metrics with hierarchical drill-down support.
         
+        This endpoint supports drilling down from network to site to cell level
+        with proper aggregation at each level.
+        
         Query parameters:
-        - level: Hierarchy level (network/site/cell)
-        - site: Site identifier (optional)
-        - cell_id: Cell identifier (optional)
+        - metric_type: Type of metrics to retrieve (lte or nr)
+        - level: Hierarchy level (network, site, cell)
+        - site: Site identifier (required for site and cell levels)
         - start_date: Start date (YYYY-MM-DD)
         - end_date: End date (YYYY-MM-DD)
-        - time_granularity: hour/day (default: day)
-        - page: Page number for pagination
-        - page_size: Number of records per page
+        - metric: Specific metric to retrieve
         """
         try:
             # Get and validate parameters

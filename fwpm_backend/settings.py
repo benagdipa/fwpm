@@ -17,19 +17,44 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load environment variables from .env.django file
+# Determine environment (development or production)
+ENVIRONMENT = os.environ.get('DJANGO_ENV', 'development')
+
+# Load environment variables from appropriate .env file
 from dotenv import load_dotenv
-ENV_FILE = BASE_DIR / '.env.django'
-if ENV_FILE.exists():
-    load_dotenv(ENV_FILE)
-    print(f"Loaded environment from {ENV_FILE}")
-else:
-    ENV_FILE = BASE_DIR / '.env'
+
+if ENVIRONMENT == 'production':
+    ENV_FILE = BASE_DIR / '.env.production'
     if ENV_FILE.exists():
         load_dotenv(ENV_FILE)
-        print(f"Loaded environment from {ENV_FILE}")
+        print(f"Loaded PRODUCTION environment from {ENV_FILE}")
     else:
-        print(f"Warning: No .env file found at {ENV_FILE}", file=sys.stderr)
+        print(f"Warning: Production environment file not found at {ENV_FILE}", file=sys.stderr)
+        # Fallback to regular .env file
+        ENV_FILE = BASE_DIR / '.env'
+        if ENV_FILE.exists():
+            load_dotenv(ENV_FILE)
+            print(f"Loaded environment from fallback file {ENV_FILE}")
+else:
+    # Development environment
+    ENV_FILE = BASE_DIR / '.env.development'
+    if ENV_FILE.exists():
+        load_dotenv(ENV_FILE)
+        print(f"Loaded DEVELOPMENT environment from {ENV_FILE}")
+    else:
+        # Try the .env.django file for backward compatibility
+        ENV_FILE = BASE_DIR / '.env.django'
+        if ENV_FILE.exists():
+            load_dotenv(ENV_FILE)
+            print(f"Loaded environment from {ENV_FILE}")
+        else:
+            # Last resort, try regular .env
+            ENV_FILE = BASE_DIR / '.env'
+            if ENV_FILE.exists():
+                load_dotenv(ENV_FILE)
+                print(f"Loaded environment from {ENV_FILE}")
+            else:
+                print(f"Warning: No .env file found at {ENV_FILE}", file=sys.stderr)
 
 # For backward compatibility, still use decouple for getting config values
 from decouple import config, Csv
@@ -41,7 +66,7 @@ from decouple import config, Csv
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-0xT7ISd2uW1r+wvuX92UR+1rn8BeAGh15AxzrxzTHLgRbM')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=True, cast=bool)
+DEBUG = config('DEBUG', default=False if ENVIRONMENT == 'production' else True, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
 
@@ -78,6 +103,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'fwpm_backend.apps.authentication.middleware.SuperAdminMiddleware',
+    'fwpm_backend.middleware.json_errors.JSONErrorMiddleware',
 ]
 
 ROOT_URLCONF = 'fwpm_backend.urls'
@@ -111,7 +137,7 @@ db_password = config('DB_PASSWORD', default='fwpmpassword')
 db_host = config('DB_HOST', default='127.0.0.1')
 db_port = config('DB_PORT', default='5432')
 
-print(f"DATABASE SETTINGS: {db_name}, {db_user}, {db_host}:{db_port}")
+print(f"DATABASE SETTINGS: {db_name}, {db_user}, {db_host}:{db_port}, Environment: {ENVIRONMENT}")
 
 # PostgreSQL configuration
 DATABASES = {
@@ -185,6 +211,10 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',  # Allow unauthenticated access for testing
     ],
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ],
+    'EXCEPTION_HANDLER': 'fwpm_backend.utils.exception_handler.custom_exception_handler',
 }
 
 # CORS settings
@@ -218,10 +248,12 @@ CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='http://localhost:
 
 # Security settings
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=False, cast=bool)
-CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=False, cast=bool)
+SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=True if ENVIRONMENT == 'production' else False, cast=bool)
+CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=True if ENVIRONMENT == 'production' else False, cast=bool)
 
 # Logging configuration
+LOG_LEVEL = config('LOG_LEVEL', default='INFO' if ENVIRONMENT == 'production' else 'DEBUG')
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -230,29 +262,37 @@ LOGGING = {
             'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
             'style': '{',
         },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
     },
     'handlers': {
-        'file': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': 'logs/django.log',
-            'formatter': 'verbose',
-        },
         'console': {
-            'level': 'DEBUG',
+            'level': LOG_LEVEL,
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
+        'file': {
+            'level': LOG_LEVEL,
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs/django.log'),
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console', 'file'],
+        'level': LOG_LEVEL,
     },
     'loggers': {
         'django': {
-            'handlers': ['file', 'console'],
-            'level': 'INFO',
+            'handlers': ['console', 'file'],
+            'level': LOG_LEVEL,
             'propagate': True,
         },
-        'network_performance': {
-            'handlers': ['file', 'console'],
-            'level': 'DEBUG',
+        'fwpm_backend': {
+            'handlers': ['console', 'file'],
+            'level': LOG_LEVEL,
             'propagate': True,
         },
     },

@@ -239,3 +239,65 @@ yarn build
 - Material-UI - React component library implementing Google's Material Design
 - Axios - Promise-based HTTP client for the browser and Node.js
 - MUI DataGrid - Feature-rich data table for React 
+
+## Environments and Deployment
+
+This application is configured to run in two environments:
+- **Development**: Windows-based local development environment
+- **Production**: RHEL (Red Hat Enterprise Linux) with NGINX
+
+### Windows Development Environment
+
+For local development on Windows:
+
+1. Use the automated setup script:
+   ```powershell
+   .\setup_windows_dev.ps1
+   ```
+
+2. Or follow these manual steps:
+   ```powershell
+   # Switch to development environment
+   .\switch_env.ps1 -Environment development
+   
+   # Set up Python virtual environment
+   python -m venv venv
+   .\venv\Scripts\Activate.ps1
+   pip install -r requirements.txt
+   
+   # Run migrations
+   python manage.py migrate
+   
+   # Start Django development server
+   python manage.py runserver
+   
+   # In a separate terminal
+   cd fwpm_frontend
+   npm install
+   npm run dev
+   ```
+
+### RHEL Production Deployment
+
+To deploy to the RHEL production server:
+
+1. Use the deployment script:
+   ```powershell
+   .\nginx_config\deploy_to_rhel.ps1 -ServerIP "your.server.ip" -Username "ssh_username" -SshKeyPath "C:\path\to\your\ssh\key.pem"
+   ```
+
+2. Or follow the manual deployment steps in the [DEPLOYMENT.md](DEPLOYMENT.md) file.
+
+## Environment Switching
+
+You can switch between environments using:
+
+```powershell
+# For development (Windows)
+.\switch_env.ps1 -Environment development
+
+# For production deployment preparation
+.\switch_env.ps1 -Environment production
+```
+
+This will copy the appropriate .env file and set necessary environment variables. 

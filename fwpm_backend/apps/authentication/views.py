@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from .models import UserProfile
-from .serializers import UserSerializer, LoginSerializer, UserProfileSerializer
+from .serializers import UserSerializer, LoginSerializer, UserProfileSerializer, EmailLoginSerializer
 
 # Create your views here.
 
@@ -16,10 +16,12 @@ class AuthViewSet(viewsets.GenericViewSet):
     def get_serializer_class(self):
         if self.action == 'login':
             return LoginSerializer
+        elif self.action == 'email_login':
+            return EmailLoginSerializer
         return UserSerializer
     
     def get_permissions(self):
-        if self.action in ['login', 'register']:
+        if self.action in ['login', 'register', 'email_login']:
             return [permissions.AllowAny()]
         return [permissions.IsAuthenticated()]
     
@@ -67,6 +69,11 @@ class AuthViewSet(viewsets.GenericViewSet):
     
     @action(detail=False, methods=['post'])
     def login(self, request):
+        # Check if this is an email-only login
+        if 'email' in request.data and 'password' not in request.data:
+            return self.email_login(request)
+            
+        # Regular username/password login
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
             username = serializer.validated_data['username']
@@ -88,6 +95,59 @@ class AuthViewSet(viewsets.GenericViewSet):
                     'user': UserSerializer(user).data
                 })
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['post'])
+    def email_login(self, request):
+        serializer = EmailLoginSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            
+            # Handle NBN email login
+            if email.endswith('@nbnco.com.au'):
+                try:
+                    # Try to find user by exact email
+                    user = User.objects.get(email=email)
+                except User.DoesNotExist:
+                    # If not found and it's an NBN email, auto-create the user
+                    username = email.split('@')[0]  # Use part before @ as username
+                    user = User.objects.create_user(
+                        username=username,
+                        email=email,
+                        password=User.objects.make_random_password()  # Generate a random password
+                    )
+                    # Create profile with default role
+                    profile = UserProfile.objects.get(user=user)
+                    profile.role = 'user'
+                    profile.department = 'nbn'
+                    profile.save()
+                
+                # Special handling for timpheb
+                if user.username == "timpheb":
+                    profile = UserProfile.objects.get(user=user)
+                    if profile.role != "super-admin":
+                        profile.role = "super-admin"
+                        profile.department = "management"
+                        profile.save()
+                
+                # Create token and return response
+                token, created = Token.objects.get_or_create(user=user)
+                return Response({
+                    'token': token.key,
+                    'user': UserSerializer(user).data
+                })
+            else:
+                # For non-NBN emails, require exact match
+                try:
+                    user = User.objects.get(email=email)
+                    token, created = Token.objects.get_or_create(user=user)
+                    return Response({
+                        'token': token.key,
+                        'user': UserSerializer(user).data
+                    })
+                except User.DoesNotExist:
+                    return Response({'error': 'No user found with this email'}, 
+                                status=status.HTTP_401_UNAUTHORIZED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=False, methods=['get', 'put'])

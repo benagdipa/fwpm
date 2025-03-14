@@ -25,13 +25,22 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 media/
+staticfiles/
 
 # Virtual Environment
 venv/
 .env
+.env.local
 .env.django
 .venv/
 ENV/
+
+# Do not ignore deployment scripts
+!deploy_production.ps1
+!verify_deployment.ps1
+!switch_env.ps1
+!setup_windows_dev.ps1
+!fresh_setup.ps1
 
 # Next.js
 .next/
@@ -42,28 +51,52 @@ out/
 .env.development.local
 .env.test.local
 .env.production.local
+.vercel
+.turbo
+*.tsbuildinfo
 
 # Logs
 logs/
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Editor directories and files
 .idea/
 .vscode/
 *.swp
 *.swo
+*~
+.DS_Store
+Thumbs.db
 
-# PowerShell scripts
-*.ps1
+# Test coverage
+coverage/
+.coverage
+htmlcov/
+.pytest_cache/
+.hypothesis/
 
-# Test files
-**/test.js
-**/test.py
-**/test.html
-**/tests.py
-**/test-*.js
+# Docker
+.dockerignore
+docker-compose*.yml
 
 # Backup files
 **/*_backup/
 *.bak
-*.orig 
+*.orig
+*_old
+*_backup
+
+# Credentials - never commit these!
+credentials.json
+*secret*
+*password*
+*apikey*
+# Exception for example files
+!sample_credentials.json
+!example_credentials.json
+
+# Project specific 
+# Add any project-specific files that should be ignored here 

@@ -86,15 +86,15 @@ class ImplementationTaskViewSet(viewsets.ModelViewSet):
         
         return response
     
-    @action(detail=False, methods=['get'], url_path='export/(?P<format>[^/.]+)')
-    def export(self, request, format=None):
+    @action(detail=False, methods=['get'], url_path='export/(?P<format_type>[^/.]+)')
+    def export(self, request, format_type=None):
         """Export tasks in various formats"""
-        logger.info(f"Export endpoint called with format: {format}")
+        logger.info(f"Export endpoint called with format: {format_type}")
         
-        if format == 'csv':
+        if format_type == 'csv':
             return self.export_csv(request)
         else:
-            return Response({"error": f"Unsupported export format: {format}"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": f"Unsupported export format: {format_type}"}, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=False, methods=['get'], url_path='template/csv')
     def download_template(self, request):
