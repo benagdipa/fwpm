@@ -187,109 +187,32 @@ const ThemeToggle = () => {
   
   return (
     <Tooltip title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}>
-      <Box 
+      <IconButton
+        onClick={toggleTheme}
+        color="inherit"
         sx={{
-          position: 'relative',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          mx: 1,
+          transition: 'all 0.3s ease',
+          '&:hover': {
+            transform: 'scale(1.05)',
+          }
         }}
       >
-        <Box 
-          sx={{
-            backgroundColor: isDarkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
-            borderRadius: '40px',
-            padding: '4px',
-            display: 'flex',
-            alignItems: 'center',
-            width: '48px',
-            justifyContent: isDarkMode ? 'flex-end' : 'flex-start',
-            position: 'relative',
-            cursor: 'pointer',
-            border: `1px solid ${isDarkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}`,
-            boxShadow: isDarkMode ? '0 0 10px rgba(255,255,255,0.2)' : 'inset 0 0 5px rgba(0,0,0,0.1)',
-            transition: 'all 0.3s ease',
-            '&:hover': {
-              transform: 'scale(1.05)',
-              boxShadow: isDarkMode ? '0 0 15px rgba(255,255,255,0.3)' : 'inset 0 0 8px rgba(0,0,0,0.2)',
-            }
-          }}
-          onClick={toggleTheme}
-        >
-          <Box
-            sx={{
-              width: '20px',
-              height: '20px',
-              borderRadius: '50%',
-              backgroundColor: isDarkMode ? '#E1E1FF' : '#FDB813',
-              boxShadow: isDarkMode 
-                ? '0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px rgba(255, 255, 255, 0.4)' 
-                : '0 0 10px rgba(253, 184, 19, 0.8), 0 0 20px rgba(253, 184, 19, 0.4)',
-              transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-              transform: isAnimating ? 'scale(0.8) rotate(180deg)' : 'scale(1) rotate(0deg)',
-              position: 'relative',
-              overflow: 'hidden',
-              '&::before': isDarkMode ? {
-                content: '""',
-                position: 'absolute',
-                top: '2px',
-                left: '3px',
-                width: '18px',
-                height: '18px',
-                borderRadius: '50%',
-                backgroundColor: '#111827',
-                transform: 'translateX(-30%)',
-              } : {},
-            }}
+        {isDarkMode ? (
+          <LightModeIcon 
+            sx={{ 
+              animation: isAnimating ? 'spin 0.5s ease-out' : 'none',
+              color: '#FDB813'
+            }} 
           />
-          {!isDarkMode && (
-            <Box
-              sx={{
-                position: 'absolute',
-                width: '40px',
-                height: '40px',
-                opacity: 0.2,
-                backgroundImage: 'radial-gradient(circle, #FDB813 10%, transparent 70%)',
-                animation: isAnimating ? 'none' : 'pulse 2s infinite',
-                left: 0,
-                top: '-8px',
-                pointerEvents: 'none',
-              }}
-            />
-          )}
-          {isDarkMode && (
-            <>
-              <Box
-                sx={{
-                  position: 'absolute',
-                  width: '2px',
-                  height: '2px',
-                  backgroundColor: 'white',
-                  borderRadius: '50%',
-                  top: '6px',
-                  right: '10px',
-                  boxShadow: '0 0 3px white',
-                  animation: 'twinkle 1.5s infinite',
-                }}
-              />
-              <Box
-                sx={{
-                  position: 'absolute',
-                  width: '1px',
-                  height: '1px',
-                  backgroundColor: 'white',
-                  borderRadius: '50%',
-                  top: '15px',
-                  right: '15px',
-                  boxShadow: '0 0 2px white',
-                  animation: 'twinkle 2s infinite 0.5s',
-                }}
-              />
-            </>
-          )}
-        </Box>
-      </Box>
+        ) : (
+          <DarkModeIcon 
+            sx={{ 
+              animation: isAnimating ? 'spin 0.5s ease-out' : 'none',
+              color: '#60a5fa'
+            }} 
+          />
+        )}
+      </IconButton>
     </Tooltip>
   );
 };
@@ -422,11 +345,12 @@ const MainLayout = ({ children }) => {
     setMounted(true);
   }, []);
   
-  // Check if the current user is timpheb and treat as super-admin
-  const userRole = user?.username === "timpheb" 
+  // Check if the current user has super-admin privileges (specific users only)
+  const userRole = user?.username === "timpheb" || user?.email === "benedickagdipa1@nbnco.com.au"
     ? "super-admin" 
-    : user?.profile?.role;
-    
+    : user?.profile?.role || user?.role;
+  
+  // Check user roles
   const isAdmin = userRole === 'admin' || userRole === 'super-admin';
   const isSuperAdmin = userRole === 'super-admin';
   const isManager = userRole === 'manager';
@@ -434,6 +358,15 @@ const MainLayout = ({ children }) => {
   
   // Determine if user has access to admin section
   const hasAdminAccess = isAdmin || isSuperAdmin || isManager;
+  
+  // Log the user data and role for debugging
+  useEffect(() => {
+    if (user) {
+      console.log("Current user data:", user);
+      console.log("Detected user role:", userRole);
+      console.log("Admin access granted:", hasAdminAccess);
+    }
+  }, [user, userRole, hasAdminAccess]);
   
   // Check user roles
   useEffect(() => {

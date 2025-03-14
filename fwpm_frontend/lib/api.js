@@ -27,12 +27,27 @@ api.interceptors.request.use(
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('token');
       if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+        // Log detailed information about the request and token
+        console.log(`API Request Details:
+          - URL: ${config.url}
+          - Method: ${config.method}
+          - Token present: ${!!token}
+          - Token first 10 chars: ${token.substring(0, 10)}...`);
+        
+        // Use 'Token' prefix instead of 'Bearer' for Django REST Framework's TokenAuthentication
+        config.headers.Authorization = `Token ${token}`;
+        
+        // Log what we're sending
+        console.log(`Authorization header set to: Token ${token.substring(0, 10)}...`);
+      } else {
+        // If we should have a token but don't, log it
+        console.log(`API Request to ${config.url} with NO auth token!`);
       }
     }
     return config;
   },
   (error) => {
+    console.error('API request interceptor error:', error);
     return Promise.reject(error);
   }
 );
@@ -46,26 +61,46 @@ api.interceptors.response.use(
     // Handle API errors
     if (error.response) {
       // Server responded with a status outside the 2xx range
-      console.error('API Error Response:', error.response.status, error.response.data);
+      console.error('API Error Response:', error.response.status, error.response.data, 'URL:', error.config.url);
       
-      // Handle 401 Unauthorized errors (token expired/invalid)
-      if (error.response.status === 401 && typeof window !== 'undefined') {
-        console.warn('Authentication error, clearing token.');
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+      // Handle authentication errors (401, 403)
+      if (error.response.status === 401 || error.response.status === 403) {
+        console.error('Authentication error detected for request:', error.config.url);
         
-        // Redirect to login page if not already there
-        if (window.location.pathname !== '/login') {
-          window.location.href = '/login?session=expired';
+        // Check if this is a profile fetch after login
+        const isProfileFetchAfterLogin = error.config.url === '/auth/me/' && 
+                                         error.config.method === 'get';
+        
+        // Check if it's a login-related request 
+        const isLoginRequest = error.config.url.includes('/auth/login') || 
+                              error.config.url.includes('/auth/email-login');
+        
+        if (isProfileFetchAfterLogin) {
+          console.error('Profile fetch failed with auth error - token might be invalid');
+          // For profile fetch, we'll throw a specialized error for proper handling in AuthContext
+        } else if (!isLoginRequest) {
+          // For non-login requests with auth errors, clear token and redirect
+          if (typeof window !== 'undefined') {
+            console.log('Clearing invalid authorization token');
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            
+            // Only redirect if we're not already on the login page
+            if (!window.location.pathname.includes('/login')) {
+              console.log('Redirecting to login due to auth error');
+              window.location.href = '/login';
+            }
+          }
         }
       }
     } else if (error.request) {
-      // The request was made but no response was received
+      // The request was made but no response received
       console.error('API No Response:', error.request);
     } else {
-      // Something happened in setting up the request that triggered an Error
-      console.error('API Request Error:', error.message);
+      // Something happened in setup
+      console.error('API Error Setup:', error.message);
     }
+
     return Promise.reject(error);
   }
 );
@@ -105,9 +140,102 @@ const authAPI = {
   // Get user profile
   getProfile: async () => {
     try {
-      const response = await api.get('/auth/me/');
-      return response.data;
+      // First try with the standard format
+      try {
+        console.log('Attempting profile fetch with standard token format (Bearer token)');
+        const response = await api.get('/auth/me/');
+        return response.data;
+      } catch (error) {
+        // If we get a 401, try with different token formats as fallback
+        if (error.response && error.response.status === 401) {
+          const token = localStorage.getItem('token');
+          if (!token) throw error; // If no token, just throw the original error
+          
+          // Log the token for debugging
+          console.log('Token for debugging:', {
+            raw: token,
+            length: token.length,
+            firstChars: token.substring(0, 10)
+          });
+          
+          console.log('First attempt failed with 401, trying alternative token format #1 (token without Bearer)');
+          try {
+            // Try a direct request with token without 'Bearer' prefix
+            const alternateResponse1 = await axios({
+              method: 'get',
+              url: `${API_URL}/auth/me/`,
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': token
+              }
+            });
+            
+            console.log('Alternative token format #1 succeeded!');
+            return alternateResponse1.data;
+          } catch (alt1Error) {
+            console.log('Alternative format #1 failed:', alt1Error.response?.status);
+            
+            // Try format #2 - Token in a different header
+            console.log('Trying alternative token format #2 (Token header)');
+            try {
+              const alternateResponse2 = await axios({
+                method: 'get',
+                url: `${API_URL}/auth/me/`,
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Token': token
+                }
+              });
+              
+              console.log('Alternative token format #2 succeeded!');
+              return alternateResponse2.data;
+            } catch (alt2Error) {
+              console.log('Alternative format #2 failed:', alt2Error.response?.status);
+              
+              // Try format #3 - Token as URL parameter
+              console.log('Trying alternative token format #3 (URL parameter)');
+              try {
+                const alternateResponse3 = await axios({
+                  method: 'get',
+                  url: `${API_URL}/auth/me/?token=${token}`,
+                  headers: {
+                    'Content-Type': 'application/json'
+                  }
+                });
+                
+                console.log('Alternative token format #3 succeeded!');
+                return alternateResponse3.data;
+              } catch (alt3Error) {
+                console.log('Alternative format #3 failed:', alt3Error.response?.status);
+                
+                // Try format #4 - Using "Token" prefix instead of "Bearer"
+                console.log('Trying alternative token format #4 (Token prefix)');
+                try {
+                  const alternateResponse4 = await axios({
+                    method: 'get',
+                    url: `${API_URL}/auth/me/`,
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Token ${token}`
+                    }
+                  });
+                  
+                  console.log('Alternative token format #4 succeeded!');
+                  return alternateResponse4.data;
+                } catch (alt4Error) {
+                  console.log('Alternative format #4 failed:', alt4Error.response?.status);
+                  throw error; // Throw original error if all alternatives fail
+                }
+              }
+            }
+          }
+        }
+        
+        // If the error is not a 401 or our fallback failed, throw the original error
+        throw error;
+      }
     } catch (error) {
+      console.error('All profile fetch attempts failed:', error);
       throw error;
     }
   },
@@ -173,6 +301,28 @@ const networkAPI = {
     } catch (error) {
       throw error;
     }
+  },
+
+  // Get LTE metrics for dashboard
+  getLTEMetrics: async (site, days) => {
+    try {
+      const response = await api.get('/network-performance/lte-metrics/', {
+        params: { site, days }
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Get alerts
+  getAlerts: async () => {
+    try {
+      const response = await api.get('/network-performance/alerts/');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 };
 
@@ -181,7 +331,17 @@ const implementationAPI = {
   // Get implementation tasks
   fetchTasks: async () => {
     try {
-      const response = await api.get('/implementation-tracker/tasks/');
+      const response = await api.get('/implementation-tasks/');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  
+  // Alias for fetchTasks for backward compatibility
+  getTasks: async () => {
+    try {
+      const response = await api.get('/implementation-tasks/');
       return response.data;
     } catch (error) {
       throw error;
@@ -191,7 +351,7 @@ const implementationAPI = {
   // Get implementation details
   fetchImplementationDetails: async (id) => {
     try {
-      const response = await api.get(`/implementation-tracker/details/${id}/`);
+      const response = await api.get(`/implementations/${id}/`);
       return response.data;
     } catch (error) {
       throw error;
@@ -201,7 +361,7 @@ const implementationAPI = {
   // Create implementation task
   createTask: async (taskData) => {
     try {
-      const response = await api.post('/implementation-tracker/tasks/', taskData);
+      const response = await api.post('/implementation-tasks/', taskData);
       return response.data;
     } catch (error) {
       throw error;
@@ -211,7 +371,7 @@ const implementationAPI = {
   // Update implementation task
   updateTask: async (id, taskData) => {
     try {
-      const response = await api.put(`/implementation-tracker/tasks/${id}/`, taskData);
+      const response = await api.put(`/implementation-tasks/${id}/`, taskData);
       return response.data;
     } catch (error) {
       throw error;
@@ -221,7 +381,17 @@ const implementationAPI = {
   // Delete implementation task
   deleteTask: async (id) => {
     try {
-      const response = await api.delete(`/implementation-tracker/tasks/${id}/`);
+      const response = await api.delete(`/implementation-tasks/${id}/`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Get implementation stats
+  getStats: async () => {
+    try {
+      const response = await api.get('/implementations/stats/');
       return response.data;
     } catch (error) {
       throw error;
@@ -250,31 +420,11 @@ const wntdAPI = {
       throw error;
     }
   },
-  
-  // Create WNTD entry
-  createEntry: async (entryData) => {
+
+  // Get WNTD stats
+  getStats: async () => {
     try {
-      const response = await api.post('/wntd/entries/', entryData);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
-  
-  // Update WNTD entry
-  updateEntry: async (id, entryData) => {
-    try {
-      const response = await api.put(`/wntd/entries/${id}/`, entryData);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
-  
-  // Delete WNTD entry
-  deleteEntry: async (id) => {
-    try {
-      const response = await api.delete(`/wntd/entries/${id}/`);
+      const response = await api.get('/wntd/stats/');
       return response.data;
     } catch (error) {
       throw error;

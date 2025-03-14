@@ -106,57 +106,126 @@ export const AuthProvider = ({ children }) => {
         try {
           // Get the full profile after login
           console.log('=== AuthContext: fetching user profile');
-          const profileData = await authAPI.getProfile();
-          console.log('=== AuthContext: profile data received:', profileData);
+          try {
+            // Log detailed token information before making the request
+            console.log('=== AuthContext: About to make profile request with token:', {
+              tokenExists: !!localStorage.getItem('token'),
+              tokenFirstChars: localStorage.getItem('token') ? localStorage.getItem('token').substring(0, 10) + '...' : 'N/A'
+            });
+            
+            const profileData = await authAPI.getProfile();
+            console.log('=== AuthContext: profile data received:', profileData);
+            
+            // Extract role directly if it exists in the profile structure
+            const extractedRole = profileData.role || 
+                                 (profileData.profile && profileData.profile.role) || 
+                                 null;
+            
+            // Create combined user data, ensuring role is accessible at root level too
+            const userData = { 
+              ...data.user, 
+              ...profileData,
+              // Ensure role is available at root level for easier access
+              role: extractedRole || data.user.role || 
+                   (data.user.profile && data.user.profile.role)
+            };
+            
+            console.log('=== AuthContext: combined user data:', userData);
+            console.log('=== AuthContext: extracted role:', userData.role);
+            
+            console.log('=== AuthContext: storing user data in localStorage');
+            localStorage.setItem('user', JSON.stringify(userData));
+            
+            console.log('=== AuthContext: updating user state');
+            setUser(userData);
+            
+            // Check if this is the first login (password change required)
+            if (userData.first_login) {
+              console.log('=== AuthContext: first login detected, setting passwordChangeRequired');
+              setPasswordChangeRequired(true);
+            }
+            
+            console.log('=== AuthContext: login successful');
+            return { success: true };
+          } catch (profileError) {
+            console.error('=== AuthContext: Error fetching profile after login:', profileError);
+            
+            // Log the complete error object for better debugging
+            console.error('=== AuthContext: Full profile error details:', {
+              name: profileError.name,
+              message: profileError.message,
+              status: profileError.response?.status,
+              statusText: profileError.response?.statusText,
+              data: profileError.response?.data,
+              headers: profileError.response?.headers,
+              config: {
+                url: profileError.config?.url,
+                method: profileError.config?.method,
+                headers: profileError.config?.headers
+              }
+            });
+            
+            // Check if this is a 401/403 error which indicates an authentication problem
+            if (profileError.response && 
+              (profileError.response.status === 401 || profileError.response.status === 403)) {
+              console.error('=== AuthContext: Authentication error when fetching profile:', 
+                            profileError.response.status, profileError.response.data);
+              
+              // Log token for debugging
+              const currentToken = localStorage.getItem('token');
+              console.error('=== AuthContext: Token used for profile fetch (first 10 chars):', 
+                           currentToken ? currentToken.substring(0, 10) + '...' : 'NO TOKEN');
+              
+              // Log extra information to diagnose the issue
+              console.error('=== AuthContext: TROUBLESHOOTING INFO:', {
+                tokenLength: currentToken ? currentToken.length : 0,
+                hasSpecialChars: currentToken ? /[^a-zA-Z0-9]/.test(currentToken) : false,
+                startsWithBearer: currentToken ? currentToken.startsWith('Bearer ') : false
+              });
+              
+              // Remove the token since it's likely invalid
+              localStorage.removeItem('token');
+              
+              // Return a specific error about profile fetch failing
+              return { 
+                success: false, 
+                message: 'Authentication failed while getting your profile. Please try logging in again.',
+                errorType: 'profile_fetch_error' 
+              };
+            }
+            
+            // For other errors, we'll still try to log in with basic data
+            console.log('=== AuthContext: Using basic user data from login response');
+            localStorage.setItem('user', JSON.stringify(data.user));
+            setUser(data.user);
+            
+            console.log('=== AuthContext: login partially successful (no profile data)');
+            return { success: true };
+          }
+        } catch (loginError) {
+          console.error('=== AuthContext: login attempt failed:', loginError);
           
-          const userData = { ...data.user, ...profileData };
-          console.log('=== AuthContext: combined user data:', userData);
-          
-          console.log('=== AuthContext: storing user data in localStorage');
-          localStorage.setItem('user', JSON.stringify(userData));
-          
-          console.log('=== AuthContext: updating user state');
-          setUser(userData);
-          
-          // Check if this is the first login (password change required)
-          if (userData.first_login) {
-            console.log('=== AuthContext: first login detected, setting passwordChangeRequired');
-            setPasswordChangeRequired(true);
+          if (loginError.response) {
+            console.error('=== AuthContext: login error response status:', loginError.response.status);
+            console.error('=== AuthContext: login error response data:', loginError.response.data);
           }
           
-          console.log('=== AuthContext: login successful');
-          return { success: true };
-        } catch (profileError) {
-          console.error('=== AuthContext: Error fetching profile after login:', profileError);
-          
-          // Even if profile fetch fails, we can still log the user in with basic data
-          console.log('=== AuthContext: Using basic user data from login response');
-          localStorage.setItem('user', JSON.stringify(data.user));
-          setUser(data.user);
-          
-          console.log('=== AuthContext: login partially successful (no profile data)');
-          return { success: true };
+          // Return detailed error information
+          return { 
+            success: false,
+            message: loginError.response?.data?.error || 'Login failed. Please try again.',
+            error: loginError
+          };
         }
-      } catch (loginError) {
-        console.error('=== AuthContext: login attempt failed:', loginError);
-        
-        if (loginError.response) {
-          console.error('=== AuthContext: login error response status:', loginError.response.status);
-          console.error('=== AuthContext: login error response data:', loginError.response.data);
-        }
-        
-        // Return detailed error information
-        return { 
-          success: false,
-          message: loginError.response?.data?.error || 'Login failed. Please try again.',
-          error: loginError
-        };
+      } catch (error) {
+        console.error('=== AuthContext: Unexpected error during login:', error);
+        return { success: false, message: 'An unexpected error occurred', error };
+      } finally {
+        setLoading(false);
       }
     } catch (error) {
       console.error('=== AuthContext: Unexpected error during login:', error);
       return { success: false, message: 'An unexpected error occurred', error };
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -183,11 +252,22 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
+      // Clear all authentication data
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      // Clear any other related storage that might be causing persistence issues
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('user');
+      
+      // Reset state
       setUser(null);
       setPasswordChangeRequired(false);
       setLoading(false);
+      
+      // Log the logout
+      console.log('User logged out, all auth data cleared');
+      
+      // Redirect to login page
       router.push('/login');
     }
   };

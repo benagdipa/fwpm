@@ -64,6 +64,45 @@ const SubmitButton = styled(Button)(({ theme }) => ({
   },
 }));
 
+// Create common error messages with solutions
+const ERROR_MESSAGES = {
+  "no_email": {
+    title: "Email Required",
+    message: "Please enter your NBN email address to continue.",
+    solution: "Enter your full email address (e.g., username@nbnco.com.au)."
+  },
+  "invalid_email": {
+    title: "Invalid Email Format",
+    message: "The email address you entered is not in a valid format.",
+    solution: "Please check your email for typos and try again."
+  },
+  "not_nbn_email": {
+    title: "Domain Not Authorized",
+    message: "Only nbnco.com.au email domains are authorized to access this system.",
+    solution: "Please use your NBN Co email address to log in."
+  },
+  "invalid_credentials": {
+    title: "Login Failed",
+    message: "We couldn't log you in with the information provided.",
+    solution: "Please check your email and try again. If you're a new user, an account will be created automatically."
+  },
+  "server_error": {
+    title: "Server Error",
+    message: "We encountered an error while trying to log you in.",
+    solution: "Please try again later or contact IT support if the issue persists."
+  },
+  "connection_error": {
+    title: "Connection Error",
+    message: "Unable to connect to the server at this time.",
+    solution: "Please check your internet connection and try again. If the problem persists, the server may be temporarily down."
+  },
+  "profile_fetch_error": {
+    title: "Authentication Issue",
+    message: "Your login was successful, but we couldn't fetch your profile information.",
+    solution: "This could be a temporary server issue. Please try again or contact support if the problem persists."
+  }
+};
+
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -127,7 +166,13 @@ const Login = () => {
     setError('');
     
     if (!email) {
-      setError('Email is required');
+      setError(
+        <Box>
+          <Typography fontWeight="bold" mb={0.5}>{ERROR_MESSAGES.no_email.title}</Typography>
+          <Typography variant="body2">{ERROR_MESSAGES.no_email.message}</Typography>
+          <Typography variant="body2" fontStyle="italic" mt={1}>{ERROR_MESSAGES.no_email.solution}</Typography>
+        </Box>
+      );
       setLoading(false);
       return;
     }
@@ -135,7 +180,13 @@ const Login = () => {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      setError('Please enter a valid email address');
+      setError(
+        <Box>
+          <Typography fontWeight="bold" mb={0.5}>{ERROR_MESSAGES.invalid_email.title}</Typography>
+          <Typography variant="body2">{ERROR_MESSAGES.invalid_email.message}</Typography>
+          <Typography variant="body2" fontStyle="italic" mt={1}>{ERROR_MESSAGES.invalid_email.solution}</Typography>
+        </Box>
+      );
       setLoading(false);
       return;
     }
@@ -144,7 +195,13 @@ const Login = () => {
     const isNbnEmail = email.toLowerCase().endsWith('@nbnco.com.au');
     
     if (!isNbnEmail) {
-      setError('Only nbnco.com.au email domains are authorized to access this system');
+      setError(
+        <Box>
+          <Typography fontWeight="bold" mb={0.5}>{ERROR_MESSAGES.not_nbn_email.title}</Typography>
+          <Typography variant="body2">{ERROR_MESSAGES.not_nbn_email.message}</Typography>
+          <Typography variant="body2" fontStyle="italic" mt={1}>{ERROR_MESSAGES.not_nbn_email.solution}</Typography>
+        </Box>
+      );
       setLoading(false);
       return;
     }
@@ -157,20 +214,59 @@ const Login = () => {
         // Redirect to dashboard on successful login
         router.push('/');
       } else {
-        // Handle login failure
-        if (result.message) {
-          setError(result.message);
+        // Handle login failure with friendly message
+        if (result.errorType === 'profile_fetch_error') {
+          console.error('Login failed due to profile fetch error - showing friendly message to user');
+          setError(
+            <Box>
+              <Typography fontWeight="bold" mb={0.5}>{ERROR_MESSAGES.profile_fetch_error.title}</Typography>
+              <Typography variant="body2">{result.message || ERROR_MESSAGES.profile_fetch_error.message}</Typography>
+              <Typography variant="body2" fontStyle="italic" mt={1}>{ERROR_MESSAGES.profile_fetch_error.solution}</Typography>
+            </Box>
+          );
+        } else if (result.message) {
+          setError(
+            <Box>
+              <Typography fontWeight="bold" mb={0.5}>{ERROR_MESSAGES.invalid_credentials.title}</Typography>
+              <Typography variant="body2">{result.message}</Typography>
+              <Typography variant="body2" fontStyle="italic" mt={1}>{ERROR_MESSAGES.invalid_credentials.solution}</Typography>
+            </Box>
+          );
         } else {
-          setError('Login failed. Please check your credentials and try again.');
+          setError(
+            <Box>
+              <Typography fontWeight="bold" mb={0.5}>{ERROR_MESSAGES.invalid_credentials.title}</Typography>
+              <Typography variant="body2">{ERROR_MESSAGES.invalid_credentials.message}</Typography>
+              <Typography variant="body2" fontStyle="italic" mt={1}>{ERROR_MESSAGES.invalid_credentials.solution}</Typography>
+            </Box>
+          );
         }
       }
     } catch (error) {
-      // Handle unexpected errors
+      // Handle unexpected errors with friendly messages
       if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
-        if (error.response.data && error.response.data.detail) {
-          setError(error.response.data.detail);
+        // The request was made and the server responded with a status code outside the 2xx range
+        let errorMessage = '';
+        
+        // Check for 401 Unauthorized during profile fetch (common authentication issue)
+        if (error.response.status === 401 && error.stack && error.stack.includes('getProfile')) {
+          setError(
+            <Box>
+              <Typography fontWeight="bold" mb={0.5}>{ERROR_MESSAGES.profile_fetch_error.title}</Typography>
+              <Typography variant="body2">{ERROR_MESSAGES.profile_fetch_error.message}</Typography>
+              <Typography variant="body2" fontStyle="italic" mt={1}>{ERROR_MESSAGES.profile_fetch_error.solution}</Typography>
+            </Box>
+          );
+        } else if (error.response.data && error.response.data.detail) {
+          errorMessage = error.response.data.detail;
+          
+          setError(
+            <Box>
+              <Typography fontWeight="bold" mb={0.5}>{ERROR_MESSAGES.server_error.title}</Typography>
+              <Typography variant="body2">{errorMessage}</Typography>
+              <Typography variant="body2" fontStyle="italic" mt={1}>{ERROR_MESSAGES.server_error.solution}</Typography>
+            </Box>
+          );
         } else if (error.response.data && typeof error.response.data === 'object') {
           // Extract error messages from response data
           const errorMessages = [];
@@ -183,19 +279,42 @@ const Login = () => {
             }
           });
           
-          setError(errorMessages.join('. '));
+          errorMessage = errorMessages.join('. ');
+          
+          setError(
+            <Box>
+              <Typography fontWeight="bold" mb={0.5}>{ERROR_MESSAGES.server_error.title}</Typography>
+              <Typography variant="body2">{errorMessage}</Typography>
+              <Typography variant="body2" fontStyle="italic" mt={1}>{ERROR_MESSAGES.server_error.solution}</Typography>
+            </Box>
+          );
         } else {
-          setError('Server error. Please try again later.');
+          errorMessage = ERROR_MESSAGES.server_error.message;
         }
+        
+        // Log the error for admins but don't show sensitive details to users
+        console.error('Login error:', error);
       } else if (error.request) {
         // The request was made but no response was received
-        setError('Unable to connect to the server. Please check your connection and try again.');
+        setError(
+          <Box>
+            <Typography fontWeight="bold" mb={0.5}>{ERROR_MESSAGES.connection_error.title}</Typography>
+            <Typography variant="body2">{ERROR_MESSAGES.connection_error.message}</Typography>
+            <Typography variant="body2" fontStyle="italic" mt={1}>{ERROR_MESSAGES.connection_error.solution}</Typography>
+          </Box>
+        );
       } else {
         // Something happened in setting up the request that triggered an Error
-        setError('An error occurred. Please try again.');
+        setError(
+          <Box>
+            <Typography fontWeight="bold" mb={0.5}>{ERROR_MESSAGES.server_error.title}</Typography>
+            <Typography variant="body2">An unexpected error occurred: {error.message}</Typography>
+            <Typography variant="body2" fontStyle="italic" mt={1}>{ERROR_MESSAGES.server_error.solution}</Typography>
+          </Box>
+        );
       }
       
-      // Log the error for admins but don't show to users
+      // Log the error for admins but don't show sensitive details to users
       console.error('Login error:', error);
     } finally {
       setLoading(false);

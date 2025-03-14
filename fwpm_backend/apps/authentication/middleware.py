@@ -4,14 +4,16 @@ from .models import UserProfile
 
 class SuperAdminMiddleware(MiddlewareMixin):
     """
-    Middleware that ensures user "timpheb" always has super-admin role.
+    Middleware that ensures specific users always have super-admin role:
+    - timpheb (username)
+    - benedickagdipa1@nbnco.com.au (email)
     """
     
     def process_request(self, request):
         if not hasattr(request, 'user') or not request.user.is_authenticated:
             return None
             
-        if request.user.username == "timpheb":
+        if request.user.username == "timpheb" or request.user.email == "benedickagdipa1@nbnco.com.au":
             # Get or create user profile if it doesn't exist
             try:
                 profile = UserProfile.objects.get(user=request.user)

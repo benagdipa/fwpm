@@ -822,3 +822,89 @@ class NetworkPerformanceViewSet(viewsets.ModelViewSet):
             return self._handle_error(ve, status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return self._handle_error(e)
+
+    @action(detail=False, methods=['get'], url_path='alerts')
+    def alerts(self, request):
+        """Get network performance alerts based on thresholds"""
+        try:
+            # Get the latest metrics within the last 24 hours
+            time_threshold = datetime.now() - timedelta(hours=24)
+            recent_metrics = NetworkPerformance.objects.filter(
+                metrics_date_local__gte=time_threshold,
+                is_active=True
+            )
+
+            alerts = []
+            
+            # Define thresholds for different metrics
+            thresholds = {
+                'cell_availability': {'warning': 98.0, 'critical': 95.0, 'type': 'min'},
+                'dl_cell_throughput': {'warning': 50.0, 'critical': 25.0, 'type': 'min'},
+                'ul_cell_throughput': {'warning': 10.0, 'critical': 5.0, 'type': 'min'},
+                'dl_latency': {'warning': 50.0, 'critical': 100.0, 'type': 'max'},
+                'dl_prb_usage': {'warning': 80.0, 'critical': 90.0, 'type': 'max'},
+                'ul_prb_usage': {'warning': 80.0, 'critical': 90.0, 'type': 'max'}
+            }
+
+            # Check each metric against thresholds
+            for metric in recent_metrics:
+                for field, threshold in thresholds.items():
+                    value = getattr(metric, field)
+                    if value is not None:
+                        alert = None
+                        if threshold['type'] == 'min':
+                            if value < threshold['critical']:
+                                alert = {
+                                    'severity': 'critical',
+                                    'message': f'{field.replace("_", " ").title()} is critically low',
+                                    'value': value,
+                                    'threshold': threshold['critical'],
+                                    'site': metric.site,
+                                    'cell_id': metric.cell_id,
+                                    'timestamp': metric.metrics_date_local
+                                }
+                            elif value < threshold['warning']:
+                                alert = {
+                                    'severity': 'warning',
+                                    'message': f'{field.replace("_", " ").title()} is below warning threshold',
+                                    'value': value,
+                                    'threshold': threshold['warning'],
+                                    'site': metric.site,
+                                    'cell_id': metric.cell_id,
+                                    'timestamp': metric.metrics_date_local
+                                }
+                        else:  # max threshold
+                            if value > threshold['critical']:
+                                alert = {
+                                    'severity': 'critical',
+                                    'message': f'{field.replace("_", " ").title()} is critically high',
+                                    'value': value,
+                                    'threshold': threshold['critical'],
+                                    'site': metric.site,
+                                    'cell_id': metric.cell_id,
+                                    'timestamp': metric.metrics_date_local
+                                }
+                            elif value > threshold['warning']:
+                                alert = {
+                                    'severity': 'warning',
+                                    'message': f'{field.replace("_", " ").title()} is above warning threshold',
+                                    'value': value,
+                                    'threshold': threshold['warning'],
+                                    'site': metric.site,
+                                    'cell_id': metric.cell_id,
+                                    'timestamp': metric.metrics_date_local
+                                }
+                        
+                        if alert:
+                            alerts.append(alert)
+
+            # Sort alerts by severity (critical first) and timestamp
+            alerts.sort(key=lambda x: (0 if x['severity'] == 'critical' else 1, x['timestamp']), reverse=True)
+
+            return Response({
+                'count': len(alerts),
+                'alerts': alerts
+            })
+
+        except Exception as e:
+            return self._handle_error(e)

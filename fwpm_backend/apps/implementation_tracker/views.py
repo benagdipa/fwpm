@@ -2,7 +2,7 @@ from django.shortcuts import render
 from rest_framework import viewsets, permissions, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.db.models import Count
+from django.db.models import Count, Avg
 from django.http import HttpResponse
 from .models import Implementation, ImplementationTask
 from .serializers import ImplementationSerializer, ImplementationTaskSerializer
@@ -14,6 +14,7 @@ from django.core.files.base import ContentFile
 import tempfile
 import logging
 from rest_framework import status
+from django.db import models
 
 # Create a logger
 logger = logging.getLogger(__name__)
@@ -40,6 +41,36 @@ class ImplementationViewSet(viewsets.ModelViewSet):
         tasks = implementation.tasks.all()
         serializer = ImplementationTaskSerializer(tasks, many=True)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        """Get implementation statistics"""
+        total_projects = Implementation.objects.count()
+        completed = Implementation.objects.filter(status='completed').count()
+        in_progress = Implementation.objects.filter(status='in_progress').count()
+        planned = Implementation.objects.filter(status='planned').count()
+        on_hold = Implementation.objects.filter(status='on_hold').count()
+        cancelled = Implementation.objects.filter(status='cancelled').count()
+
+        # Calculate average progress for in-progress projects
+        avg_progress = Implementation.objects.filter(
+            status='in_progress'
+        ).aggregate(avg_progress=Avg('progress'))['avg_progress'] or 0
+
+        # Get recent projects
+        recent_projects = Implementation.objects.order_by('-start_date')[:5]
+        recent_projects_data = ImplementationSerializer(recent_projects, many=True).data
+
+        return Response({
+            'total_projects': total_projects,
+            'completed': completed,
+            'in_progress': in_progress,
+            'planned': planned,
+            'on_hold': on_hold,
+            'cancelled': cancelled,
+            'avg_progress': round(avg_progress, 2),
+            'recent_projects': recent_projects_data
+        })
 
 class ImplementationTaskViewSet(viewsets.ModelViewSet):
     queryset = ImplementationTask.objects.all()

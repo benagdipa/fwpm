@@ -252,7 +252,7 @@ SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=True if ENVIRONM
 CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=True if ENVIRONMENT == 'production' else False, cast=bool)
 
 # Logging configuration
-LOG_LEVEL = config('LOG_LEVEL', default='INFO' if ENVIRONMENT == 'production' else 'DEBUG')
+LOG_LEVEL = config('LOG_LEVEL', default='INFO' if ENVIRONMENT == 'production' else 'DEBUG').upper()
 
 LOGGING = {
     'version': 1,

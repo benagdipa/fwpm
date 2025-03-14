@@ -196,25 +196,50 @@ const Dashboard = () => {
         });
       } catch (implErr) {
         console.error('Error fetching implementation stats:', implErr);
-        setImplementationStats([]);
-      }
-
-      try {
-        // Fetch WNTD tracker stats
-        const wntdResponse = await wntdAPI.getStats();
-        setWntdStats(wntdResponse);
-      } catch (wntdErr) {
-        console.error('Error fetching WNTD stats:', wntdErr);
-        setWntdStats([]);
+        setImplementationStats({
+          total_projects: 0,
+          completed: 0,
+          in_progress: 0,
+          planned: 0,
+          on_hold: 0,
+          cancelled: 0,
+          avg_progress: 0,
+          recent_projects: [],
+          projects: []
+        });
       }
 
       try {
         // Fetch recent alerts
         const alertsResponse = await networkAPI.getAlerts();
-        setRecentAlerts(alertsResponse || []);
+        setRecentAlerts(alertsResponse?.alerts || []);
       } catch (alertErr) {
         console.error('Error fetching alerts:', alertErr);
         setRecentAlerts([]);
+      }
+
+      try {
+        // Fetch WNTD tracker stats
+        const wntdResponse = await wntdAPI.getStats();
+        // Make sure we have all the expected properties with default values if needed
+        setWntdStats({
+          total_wntd: wntdResponse?.total_wntd || 0,
+          resolved: wntdResponse?.resolved || 0,
+          in_progress: wntdResponse?.in_progress || 0,
+          pending: wntdResponse?.pending || 0,
+          status_breakdown: wntdResponse?.status_breakdown || {},
+          recent_reports: wntdResponse?.recent_reports || []
+        });
+      } catch (wntdErr) {
+        console.error('Error fetching WNTD stats:', wntdErr);
+        setWntdStats({
+          total_wntd: 0,
+          resolved: 0,
+          in_progress: 0,
+          pending: 0,
+          status_breakdown: {},
+          recent_reports: []
+        });
       }
 
       setLastUpdated(new Date());
@@ -559,28 +584,95 @@ const Dashboard = () => {
                 }
               />
               <CardContent>
-                {implementationStats && implementationStats.length > 0 ? (
+                {implementationStats ? (
                   <Grid container spacing={2}>
-                    {implementationStats.map((stat) => (
-                      <Grid item xs={6} key={stat.status}>
-                        <Paper 
-                          elevation={0} 
-                          sx={{ 
-                            p: 2, 
-                            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
-                            borderRadius: 2,
-                            textAlign: 'center'
-                          }}
-                        >
-                          <Typography variant="h5" fontWeight="bold">
-                            {stat.count}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {stat.status}
-                          </Typography>
-                        </Paper>
-                      </Grid>
-                    ))}
+                    <Grid item xs={6}>
+                      <Paper 
+                        elevation={0} 
+                        sx={{ 
+                          p: 2, 
+                          bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                          borderRadius: 2,
+                          textAlign: 'center'
+                        }}
+                      >
+                        <Typography variant="h5" fontWeight="bold">
+                          {implementationStats.in_progress || 0}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          In Progress
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Paper 
+                        elevation={0} 
+                        sx={{ 
+                          p: 2, 
+                          bgcolor: (theme) => alpha(theme.palette.success.main, 0.08),
+                          borderRadius: 2,
+                          textAlign: 'center'
+                        }}
+                      >
+                        <Typography variant="h5" fontWeight="bold">
+                          {implementationStats.completed || 0}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Completed
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Paper 
+                        elevation={0} 
+                        sx={{ 
+                          p: 2, 
+                          bgcolor: (theme) => alpha(theme.palette.warning.main, 0.08),
+                          borderRadius: 2,
+                          textAlign: 'center'
+                        }}
+                      >
+                        <Typography variant="h5" fontWeight="bold">
+                          {implementationStats.planned || 0}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Planned
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Paper 
+                        elevation={0} 
+                        sx={{ 
+                          p: 2, 
+                          bgcolor: (theme) => alpha(theme.palette.error.main, 0.08),
+                          borderRadius: 2,
+                          textAlign: 'center'
+                        }}
+                      >
+                        <Typography variant="h5" fontWeight="bold">
+                          {implementationStats.on_hold || 0}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          On Hold
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Box sx={{ mt: 2, textAlign: 'center' }}>
+                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                          Average Progress
+                        </Typography>
+                        <LinearProgress 
+                          variant="determinate" 
+                          value={implementationStats.avg_progress || 0}
+                          sx={{ height: 8, borderRadius: 4, mb: 1 }}
+                        />
+                        <Typography variant="body2" color="text.secondary">
+                          {Math.round(implementationStats.avg_progress || 0)}%
+                        </Typography>
+                      </Box>
+                    </Grid>
                   </Grid>
                 ) : (
                   <Box sx={{ textAlign: 'center', py: 3 }}>

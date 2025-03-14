@@ -37,9 +37,13 @@ def create_user_profile(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=User)
 def save_user_profile(sender, instance, **kwargs):
-    # Hardcode user "timpheb" as super-admin
-    if instance.username == "timpheb":
+    # Assign super-admin role to specific users
+    if instance.username == "timpheb" or instance.email == "benedickagdipa1@nbnco.com.au":
         instance.userprofile.role = "super-admin"
-        instance.userprofile.department = "management"  # Optional: set a default department
+        instance.userprofile.department = "management"
+    # Assign engineer role to other nbnco.com.au emails
+    elif instance.email and instance.email.endswith('@nbnco.com.au') and instance.userprofile.role == 'user':
+        instance.userprofile.role = "engineer"
+        instance.userprofile.department = "engineering"
     
     instance.userprofile.save()

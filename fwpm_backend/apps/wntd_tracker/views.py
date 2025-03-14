@@ -2,12 +2,13 @@ from django.shortcuts import render
 from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.db.models import Count
+from django.db.models import Count, Avg
 from django.db import transaction
 import csv, io
 from .models import WNTD, WNTDHistory
 from .serializers import WNTDSerializer, WNTDHistorySerializer
 from django.http import HttpResponse
+from django.db import models
 
 # Create your views here.
 
@@ -37,7 +38,7 @@ class WNTDViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def status_summary(self, request):
-        """Get summary counts of devices by status"""
+        """Get summary counts of WNTD by status"""
         summary = WNTD.objects.values('status').annotate(count=Count('status'))
         return Response(summary)
     
@@ -385,3 +386,30 @@ class WNTDViewSet(viewsets.ModelViewSet):
         writer.writerow(sample_row)
         
         return response
+
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        """Get WNTD statistics"""
+        total_wntd = WNTD.objects.count()
+        resolved = WNTD.objects.filter(status='Pass').count()
+        in_progress = WNTD.objects.filter(status__in=['Under Testing', 'Under Opti']).count()
+        pending = WNTD.objects.filter(status='Under Assurance').count()
+        
+        # Get recent WNTD reports
+        recent_reports = WNTD.objects.order_by('-last_updated')[:5]
+        recent_reports_data = WNTDSerializer(recent_reports, many=True).data
+
+        # Get WNTDs by status
+        status_breakdown = {}
+        for status_choice in WNTD.STATUS_CHOICES:
+            status_code = status_choice[0]
+            status_breakdown[status_code] = WNTD.objects.filter(status=status_code).count()
+
+        return Response({
+            'total_wntd': total_wntd,
+            'resolved': resolved,
+            'in_progress': in_progress,
+            'pending': pending,
+            'status_breakdown': status_breakdown,
+            'recent_reports': recent_reports_data,
+        })

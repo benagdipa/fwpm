@@ -123,6 +123,7 @@ function MyApp({ Component, pageProps }) {
   
   // State to track client-side rendering
   const [mounted, setMounted] = useState(false);
+  const [activeTheme, setActiveTheme] = useState(lightTheme);
   const router = useRouter();
   
   useEffect(() => {
@@ -140,6 +141,22 @@ function MyApp({ Component, pageProps }) {
       // Apply the theme
       document.documentElement.classList.remove('light', 'dark');
       document.documentElement.classList.add(initialTheme);
+      
+      // Set active MUI theme
+      setActiveTheme(initialTheme === 'dark' ? darkTheme : lightTheme);
+      
+      // Set up theme change observer
+      const observer = new MutationObserver(() => {
+        const isDark = document.documentElement.classList.contains('dark');
+        setActiveTheme(isDark ? darkTheme : lightTheme);
+      });
+      
+      observer.observe(document.documentElement, { 
+        attributes: true, 
+        attributeFilter: ['class'] 
+      });
+      
+      return () => observer.disconnect();
     }
   }, []);
   
@@ -155,7 +172,7 @@ function MyApp({ Component, pageProps }) {
         }
       `}</style>
       <AuthProvider>
-        <MUIThemeProvider theme={mounted ? (document.documentElement.classList.contains('dark') ? darkTheme : lightTheme) : lightTheme}>
+        <MUIThemeProvider theme={activeTheme}>
           <CssBaseline />
           {mounted ? (
             <AnimatePresence mode="wait">
@@ -179,38 +196,6 @@ function MyApp({ Component, pageProps }) {
         </MUIThemeProvider>
       </AuthProvider>
     </>
-  );
-}
-
-// Client-side only Material-UI ThemeProvider
-function ClientSideMUI({ children }) {
-  const [currentTheme, setCurrentTheme] = useState(lightTheme);
-  
-  useEffect(() => {
-    // Check if document has .dark class
-    const updateTheme = () => {
-      const isDarkMode = document.documentElement.classList.contains('dark');
-      setCurrentTheme(isDarkMode ? darkTheme : lightTheme);
-    };
-    
-    // Set initial theme
-    updateTheme();
-    
-    // Listen for theme changes
-    const observer = new MutationObserver(updateTheme);
-    observer.observe(document.documentElement, { 
-      attributes: true, 
-      attributeFilter: ['class'] 
-    });
-    
-    return () => observer.disconnect();
-  }, []);
-  
-  return (
-    <MUIThemeProvider theme={currentTheme}>
-      <CssBaseline />
-      {children}
-    </MUIThemeProvider>
   );
 }
 

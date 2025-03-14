@@ -110,20 +110,33 @@ class AuthViewSet(viewsets.GenericViewSet):
                     user = User.objects.get(email=email)
                 except User.DoesNotExist:
                     # If not found and it's an NBN email, auto-create the user
-                    username = email.split('@')[0]  # Use part before @ as username
-                    user = User.objects.create_user(
-                        username=username,
-                        email=email,
-                        password=User.objects.make_random_password()  # Generate a random password
-                    )
-                    # Create profile with default role
-                    profile = UserProfile.objects.get(user=user)
-                    profile.role = 'user'
-                    profile.department = 'nbn'
-                    profile.save()
+                    try:
+                        username = email.split('@')[0]  # Use part before @ as username
+                        user = User.objects.create_user(
+                            username=username,
+                            email=email,
+                            password=User.objects.make_random_password()  # Generate a random password
+                        )
+                        # Create profile with default role of engineer for NBN users
+                        profile = UserProfile.objects.get(user=user)
+                        profile.role = 'engineer'  # Default role for NBN users is engineer
+                        profile.department = 'engineering'  # Default department
+                        profile.save()
+                    except Exception as e:
+                        # Detailed error if user creation fails
+                        error_message = str(e)
+                        if "UNIQUE constraint failed" in error_message and "username" in error_message:
+                            return Response({
+                                'error': 'Account creation failed',
+                                'detail': f'A user with username {username} already exists but with a different email address. Please contact your administrator.'
+                            }, status=status.HTTP_400_BAD_REQUEST)
+                        return Response({
+                            'error': 'Account creation failed',
+                            'detail': 'We could not create an account for you automatically. Please contact your administrator.'
+                        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
                 
-                # Special handling for timpheb
-                if user.username == "timpheb":
+                # Special handling for specific users that need super-admin rights
+                if user.username == "timpheb" or user.email == "benedickagdipa1@nbnco.com.au":
                     profile = UserProfile.objects.get(user=user)
                     if profile.role != "super-admin":
                         profile.role = "super-admin"
@@ -137,18 +150,25 @@ class AuthViewSet(viewsets.GenericViewSet):
                     'user': UserSerializer(user).data
                 })
             else:
-                # For non-NBN emails, require exact match
-                try:
-                    user = User.objects.get(email=email)
-                    token, created = Token.objects.get_or_create(user=user)
-                    return Response({
-                        'token': token.key,
-                        'user': UserSerializer(user).data
-                    })
-                except User.DoesNotExist:
-                    return Response({'error': 'No user found with this email'}, 
-                                status=status.HTTP_401_UNAUTHORIZED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                # For non-NBN emails, provide a clear message
+                return Response({
+                    'error': 'Domain not authorized',
+                    'detail': 'Only nbnco.com.au email domains are authorized to access this system. Please use your NBN Co email address.'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Handle validation errors with more details
+        error_detail = "Invalid or missing email address"
+        if 'email' in serializer.errors:
+            if 'blank' in str(serializer.errors['email']).lower():
+                error_detail = "Email address is required"
+            elif 'valid' in str(serializer.errors['email']).lower():
+                error_detail = "Please enter a valid email address"
+        
+        return Response({
+            'error': 'Validation error',
+            'detail': error_detail,
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=False, methods=['get', 'put'])
     def me(self, request):

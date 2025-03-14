@@ -39,6 +39,8 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Snackbar from '@mui/material/Snackbar';
 import TablePagination from '@mui/material/TablePagination';
+import Backdrop from '@mui/material/Backdrop';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 
 // DataGrid components
 import { 
@@ -71,6 +73,7 @@ import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import SwapVertIcon from '@mui/icons-material/SwapVert';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import SearchOffIcon from '@mui/icons-material/SearchOff';
+import InfoIcon from '@mui/icons-material/Info';
 
 // Styled components
 const StyledCard = styled(Card)(({ theme }) => ({
@@ -416,6 +419,10 @@ const NetworkPerformancePage = () => {
   const [starburstConnectionInfo, setStarburstConnectionInfo] = useState(null);
   const [isUsingMockData, setIsUsingMockData] = useState(true);
   
+  // State for tracking operation status
+  const [operationStatus, setOperationStatus] = useState('');
+  const [showOperationStatus, setShowOperationStatus] = useState(false);
+  
   // Initialize with mock data on component mount
   useEffect(() => {
     loadSites();
@@ -523,6 +530,11 @@ const NetworkPerformancePage = () => {
   // Connect to Starburst for data access
   const connectToStarburst = async () => {
     try {
+      // Update the UI to show connecting status
+      setIsConnectingToStarburst(true);
+      setOperationStatus('Connecting to Starburst Enterprise...');
+      setShowOperationStatus(true);
+      
       // Call the API to connect to Starburst
       const connectionResponse = await networkAPI.connectToStarburst();
       
@@ -532,14 +544,35 @@ const NetworkPerformancePage = () => {
       setIsUsingMockData(false);
       
       // Show success message
+      setOperationStatus('Connected to Starburst Enterprise successfully. Loading real data...');
       setWarning(`Connected to Starburst Enterprise. Connection ID: ${connectionResponse.connection.id}`);
+      setShowWarning(true);
+      
+      // Immediately load real data after successful connection
+      await loadData();
+      
+      setOperationStatus('Successfully loaded real-time data from Starburst');
+      setTimeout(() => {
+        setShowOperationStatus(false);
+      }, 3000);
+      
       return true;
     } catch (error) {
       // Handle connection error
       setError('Failed to connect to Starburst Enterprise. Using mock data instead.');
+      setShowError(true);
       setIsConnectedToStarburst(false);
       setIsUsingMockData(true);
+      
+      // Update status message
+      setOperationStatus('Connection to Starburst failed. Using mock data.');
+      setTimeout(() => {
+        setShowOperationStatus(false);
+      }, 5000);
+      
       return false;
+    } finally {
+      setIsConnectingToStarburst(false);
     }
   };
 
@@ -586,6 +619,9 @@ const NetworkPerformancePage = () => {
       
       // Use mock data if not connected to Starburst
       if (isUsingMockData) {
+        setOperationStatus('Loading mock data...');
+        setShowOperationStatus(true);
+        
         // Set mock data
         setLteData(mockLteData);
         setNrData(mockNrData);
@@ -625,59 +661,130 @@ const NetworkPerformancePage = () => {
         });
         setNrKpis(newNrKpis);
         
+        setOperationStatus('Mock data loaded successfully');
+        setTimeout(() => {
+          setShowOperationStatus(false);
+        }, 3000);
+        
         // Complete loading
         setLoading(false);
         return;
       }
       
-      // Fetch real data from API
-      const [lteMetrics, nrMetrics, summary] = await Promise.all([
-        networkAPI.fetchLteMetrics(params),
-        networkAPI.fetchNrMetrics(params),
-        networkAPI.fetchDashboardSummary(params)
-      ]);
+      // Clear any existing mock data when using real data
+      if (isConnectedToStarburst) {
+        setOperationStatus('Fetching real-time data from Starburst...');
+        setShowOperationStatus(true);
+      }
       
-      // Process LTE metrics
-      setLteData(lteMetrics);
-      const newLteKpis = {};
-      lteMetrics.forEach((row) => {
-        Object.keys(row).forEach(key => {
-          if (key !== 'date' && key !== 'site') {
-            if (!newLteKpis[key]) {
-              newLteKpis[key] = {
-                current: parseFloat(row[key]),
-                previous: null,
-                trend: 0
-              };
+      let hasLteData = false;
+      let hasNrData = false;
+      let hasSummaryData = false;
+      
+      try {
+        // Update status message
+        setOperationStatus('Running LTE metrics query...');
+        
+        // Fetch LTE metrics
+        const lteMetrics = await networkAPI.fetchLteMetrics(params);
+        
+        // Process LTE metrics
+        setLteData(lteMetrics);
+        const newLteKpis = {};
+        lteMetrics.forEach((row) => {
+          Object.keys(row).forEach(key => {
+            if (key !== 'date' && key !== 'site') {
+              if (!newLteKpis[key]) {
+                newLteKpis[key] = {
+                  current: parseFloat(row[key]),
+                  previous: null,
+                  trend: 0
+                };
+              }
             }
-          }
+          });
         });
-      });
-      setLteKpis(newLteKpis);
+        setLteKpis(newLteKpis);
+        hasLteData = true;
+      } catch (lteError) {
+        setError('Failed to load LTE metrics data. Please try again.');
+        setShowError(true);
+        console.error('LTE metrics error:', lteError);
+      }
       
-      // Process NR metrics
-      setNrData(nrMetrics);
-      const newNrKpis = {};
-      nrMetrics.forEach((row) => {
-        Object.keys(row).forEach(key => {
-          if (key !== 'date' && key !== 'site') {
-            if (!newNrKpis[key]) {
-              newNrKpis[key] = {
-                current: parseFloat(row[key]),
-                previous: null,
-                trend: 0
-              };
+      try {
+        // Update status message
+        setOperationStatus('Running NR metrics query...');
+        
+        // Fetch NR metrics
+        const nrMetrics = await networkAPI.fetchNrMetrics(params);
+        
+        // Process NR metrics
+        setNrData(nrMetrics);
+        const newNrKpis = {};
+        nrMetrics.forEach((row) => {
+          Object.keys(row).forEach(key => {
+            if (key !== 'date' && key !== 'site') {
+              if (!newNrKpis[key]) {
+                newNrKpis[key] = {
+                  current: parseFloat(row[key]),
+                  previous: null,
+                  trend: 0
+                };
+              }
             }
-          }
+          });
         });
-      });
-      setNrKpis(newNrKpis);
+        setNrKpis(newNrKpis);
+        hasNrData = true;
+      } catch (nrError) {
+        setError('Failed to load NR metrics data. Please try again.');
+        setShowError(true);
+        console.error('NR metrics error:', nrError);
+      }
       
-      // Set summary data
-      setDashboardSummary(summary);
+      try {
+        // Update status message
+        setOperationStatus('Running dashboard summary query...');
+        
+        // Fetch dashboard summary
+        const summary = await networkAPI.fetchDashboardSummary(params);
+        
+        // Set summary data
+        setDashboardSummary(summary);
+        hasSummaryData = true;
+      } catch (summaryError) {
+        setError('Failed to load dashboard summary. Please try again.');
+        setShowError(true);
+        console.error('Dashboard summary error:', summaryError);
+      }
+      
+      // Update data source state based on query results
+      if (isConnectedToStarburst && (hasLteData || hasNrData || hasSummaryData)) {
+        setIsUsingMockData(false);
+      } else if (!hasLteData && !hasNrData && !hasSummaryData) {
+        // If all queries failed, fall back to mock data
+        setWarning('Failed to retrieve data from Starburst. Falling back to mock data.');
+        setShowWarning(true);
+        setIsUsingMockData(true);
+        loadMockData();
+      }
+      
+      // Update status message for completion
+      setOperationStatus(isUsingMockData 
+        ? 'Using mock data due to query failures' 
+        : 'All queries completed successfully - viewing real-time data');
+      setTimeout(() => {
+        setShowOperationStatus(false);
+      }, 3000);
       
     } catch (error) {
       setError('Failed to load network performance data');
+      setShowError(true);
+      setOperationStatus('Query failed. Please try again.');
+      setTimeout(() => {
+        setShowOperationStatus(false);
+      }, 5000);
     } finally {
       setLoading(false);
     }
@@ -788,7 +895,7 @@ const NetworkPerformancePage = () => {
                 <Button 
                   variant="contained" 
                   color="primary"
-                  startIcon={<RouterIcon />}
+                  startIcon={isConnectingToStarburst ? <CircularProgress size={16} color="inherit" /> : <RouterIcon />}
                   onClick={connectToStarburst}
                   disabled={isConnectingToStarburst}
                 >
@@ -798,17 +905,17 @@ const NetworkPerformancePage = () => {
               
               <Button 
                 variant="outlined" 
-                startIcon={<RefreshIcon />}
+                startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <RefreshIcon />}
                 onClick={handleRefresh}
                 disabled={loading}
               >
-                Refresh
+                {loading ? 'Refreshing...' : 'Refresh'}
               </Button>
             </Stack>
           </Box>
           
           {/* Connect to Starburst info card */}
-          {!isConnectedToStarburst && !isConnectingToStarburst && (
+          {!isConnectedToStarburst && !isConnectingToStarburst && isUsingMockData && (
             <Paper 
               sx={{ 
                 p: 2, 
@@ -834,14 +941,45 @@ const NetworkPerformancePage = () => {
                 </Box>
               </Box>
               <Box sx={{ flexGrow: 1 }} />
-              <Button 
-                variant="contained" 
-                color="primary" 
-                onClick={connectToStarburst}
-                startIcon={<RouterIcon />}
-              >
-                Connect to Starburst
-              </Button>
+              <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', backgroundColor: alpha(theme.palette.info.main, 0.08), p: 1, borderRadius: 1 }}>
+                Use the Connect to Starburst button above to view real-time network data
+              </Typography>
+            </Paper>
+          )}
+          
+          {/* Real data indicator - only shown when connected to Starburst */}
+          {isConnectedToStarburst && !isUsingMockData && (
+            <Paper 
+              sx={{ 
+                p: 2, 
+                mb: 3, 
+                display: 'flex', 
+                alignItems: 'center', 
+                flexDirection: { xs: 'column', sm: 'row' }, 
+                gap: 2,
+                border: '1px solid',
+                borderColor: alpha(theme.palette.success.main, 0.3),
+                backgroundColor: alpha(theme.palette.success.main, 0.05)
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <FiberManualRecordIcon color="success" fontSize="large" />
+                <Box>
+                  <Typography variant="subtitle1" fontWeight="bold">
+                    Viewing real-time data from Starburst
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    You are now connected to Starburst Enterprise and viewing real-time network performance data
+                  </Typography>
+                </Box>
+              </Box>
+              <Box sx={{ flexGrow: 1 }} />
+              <Chip 
+                label="Connected" 
+                color="success" 
+                size="small" 
+                icon={<NetworkCheckIcon fontSize="small" />}
+              />
             </Paper>
           )}
           
@@ -858,11 +996,16 @@ const NetworkPerformancePage = () => {
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <CircularProgress size={24} />
-                <Typography>
-                  Connecting to Starburst Enterprise...
-                </Typography>
+                <Box sx={{ width: '100%' }}>
+                  <Typography variant="subtitle1" fontWeight="medium">
+                    Connecting to Starburst Enterprise...
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                    Establishing secure connection to data source
+                  </Typography>
+                  <LinearProgress sx={{ mt: 1.5, borderRadius: 1 }} />
+                </Box>
               </Box>
-              <LinearProgress sx={{ mt: 2, borderRadius: 1 }} />
             </Paper>
           )}
           
@@ -883,21 +1026,35 @@ const NetworkPerformancePage = () => {
               exclusive
               onChange={handleTimeRangeChange}
               size="small"
+              disabled={loading || isConnectingToStarburst}
               sx={{ 
                 display: 'flex', 
                 flexWrap: 'wrap',
-                width: { xs: '100%', md: 'auto' }
+                width: { xs: '100%', md: 'auto' },
+                position: 'relative'
               }}
             >
-              <ToggleButton value="day">Day</ToggleButton>
-              <ToggleButton value="week">Week</ToggleButton>
-              <ToggleButton value="month">Month</ToggleButton>
-              <ToggleButton value="quarter">Quarter</ToggleButton>
+              <ToggleButton value="day">
+                {loading ? <CircularProgress size={14} sx={{ mr: 1 }} /> : <CalendarViewDayIcon fontSize="small" sx={{ mr: 0.5 }} />}
+                Day
+              </ToggleButton>
+              <ToggleButton value="week">
+                {loading ? <CircularProgress size={14} sx={{ mr: 1 }} /> : <CalendarViewWeekIcon fontSize="small" sx={{ mr: 0.5 }} />}
+                Week
+              </ToggleButton>
+              <ToggleButton value="month">
+                {loading ? <CircularProgress size={14} sx={{ mr: 1 }} /> : <CalendarViewMonthIcon fontSize="small" sx={{ mr: 0.5 }} />}
+                Month
+              </ToggleButton>
+              <ToggleButton value="quarter">
+                {loading ? <CircularProgress size={14} sx={{ mr: 1 }} /> : <DateRangeIcon fontSize="small" sx={{ mr: 0.5 }} />}
+                Quarter
+              </ToggleButton>
             </ToggleButtonGroup>
             
             <Box sx={{ flexGrow: 1 }} />
             
-            <FormControl size="small" sx={{ minWidth: { xs: '100%', md: 180 } }}>
+            <FormControl size="small" sx={{ minWidth: { xs: '100%', md: 180 }, position: 'relative' }}>
               <InputLabel id="site-filter-label">Filter by Site</InputLabel>
               <Select
                 labelId="site-filter-label"
@@ -905,6 +1062,11 @@ const NetworkPerformancePage = () => {
                 label="Filter by Site"
                 onChange={handleSiteFilterChange}
                 fullWidth
+                disabled={loading || isConnectingToStarburst}
+                IconComponent={(props) => loading ? 
+                  <CircularProgress size={20} sx={{ mr: 1 }} /> : 
+                  <KeyboardArrowDownIcon {...props} />
+                }
               >
                 {sites.map((site) => {
                   // Support both object format from API and string format for mock data
@@ -918,6 +1080,18 @@ const NetworkPerformancePage = () => {
                   );
                 })}
               </Select>
+              {loading && (
+                <CircularProgress 
+                  size={16} 
+                  sx={{ 
+                    position: 'absolute', 
+                    right: 30, 
+                    top: '50%', 
+                    transform: 'translateY(-50%)',
+                    zIndex: 1
+                  }} 
+                />
+              )}
             </FormControl>
           </Box>
           
@@ -925,6 +1099,60 @@ const NetworkPerformancePage = () => {
           {loading && (
             <LinearProgress sx={{ mb: 2, borderRadius: 1 }} />
           )}
+          
+          {/* Operation status notification */}
+          <Snackbar 
+            open={showOperationStatus} 
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+          >
+            <Alert 
+              severity="info" 
+              sx={{ 
+                width: '100%', 
+                alignItems: 'center',
+                '& .MuiAlert-message': {
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1
+                }
+              }}
+              icon={(loading || isConnectingToStarburst) ? 
+                <CircularProgress size={20} color="info" /> : 
+                <InfoIcon />
+              }
+            >
+              {operationStatus}
+              {(loading || isConnectingToStarburst) && (
+                <CircularProgress 
+                  size={16} 
+                  sx={{ ml: 1, color: theme.palette.info.main }} 
+                />
+              )}
+            </Alert>
+          </Snackbar>
+          
+          {/* Backdrop for heavy loading operations */}
+          <Backdrop
+            sx={{
+              color: '#fff',
+              zIndex: (theme) => theme.zIndex.drawer + 1,
+              flexDirection: 'column',
+              gap: 2
+            }}
+            open={isConnectingToStarburst || (loading && operationStatus.includes('query'))}
+          >
+            <CircularProgress color="inherit" size={60} />
+            <Typography variant="h6">
+              {isConnectingToStarburst 
+                ? 'Connecting to Starburst Enterprise...' 
+                : operationStatus || 'Loading data...'}
+            </Typography>
+            <Typography variant="body2" color="rgba(255,255,255,0.7)" sx={{ maxWidth: 400, textAlign: 'center' }}>
+              {isConnectingToStarburst 
+                ? 'This may take a few moments as we establish a secure connection'
+                : 'Running complex queries to retrieve your data'}
+            </Typography>
+          </Backdrop>
           
           {/* Error message */}
           <Snackbar 
@@ -993,33 +1221,42 @@ const NetworkPerformancePage = () => {
             </Typography>
             
             {/* LTE Summary Cards */}
-            <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }} sx={{ mb: 3 }}>
-              {lteKpis.map((kpi) => (
-                <Grid item xs={6} sm={6} md={3} key={kpi.id}>
-                  <StyledCard>
-                    <CardContent>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <Typography variant="subtitle2" color="text.secondary">
-                          {kpi.name}
+            {loading ? (
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4 }}>
+                <CircularProgress size={40} />
+                <Typography variant="body1" sx={{ mt: 2 }}>
+                  Loading LTE metrics data...
+                </Typography>
+              </Box>
+            ) : (
+              <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }} sx={{ mb: 3 }}>
+                {lteKpis.map((kpi) => (
+                  <Grid item xs={6} sm={6} md={3} key={kpi.id}>
+                    <StyledCard>
+                      <CardContent>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <Typography variant="subtitle2" color="text.secondary">
+                            {kpi.name}
+                          </Typography>
+                          {kpi.status && (
+                            <FiberManualRecordIcon 
+                              fontSize="small" 
+                              sx={{ color: getStatusColor(kpi.status) }} 
+                            />
+                          )}
+                        </Box>
+                        <Typography variant="h5" component="div" fontWeight="bold" sx={{ my: 1 }}>
+                          {formatMetricValue(kpi.value, kpi.unit)}
                         </Typography>
-                        {kpi.status && (
-                          <FiberManualRecordIcon 
-                            fontSize="small" 
-                            sx={{ color: getStatusColor(kpi.status) }} 
-                          />
-                        )}
-                      </Box>
-                      <Typography variant="h5" component="div" fontWeight="bold" sx={{ my: 1 }}>
-                        {formatMetricValue(kpi.value, kpi.unit)}
-                      </Typography>
-                    </CardContent>
-                  </StyledCard>
-                </Grid>
-              ))}
-            </Grid>
+                      </CardContent>
+                    </StyledCard>
+                  </Grid>
+                ))}
+              </Grid>
+            )}
             
             {/* LTE Data Table */}
-            {lteData.length > 0 && (
+            {!loading && lteData.length > 0 && (
               <Box sx={{ mt: 4, height: 500 }}>
                 <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
                   LTE Cell Details
@@ -1176,37 +1413,46 @@ const NetworkPerformancePage = () => {
           {/* NR Tab Panel */}
           <TabPanel value={tabValue} index={1}>
             <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
-              NR Key Performance Indicators
+              NR (5G) Key Performance Indicators
             </Typography>
             
             {/* NR Summary Cards */}
-            <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }} sx={{ mb: 3 }}>
-              {nrKpis.map((kpi) => (
-                <Grid item xs={6} sm={6} md={3} key={kpi.id}>
-                  <StyledCard>
-                    <CardContent>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <Typography variant="subtitle2" color="text.secondary">
-                          {kpi.name}
+            {loading ? (
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4 }}>
+                <CircularProgress size={40} />
+                <Typography variant="body1" sx={{ mt: 2 }}>
+                  Loading NR (5G) metrics data...
+                </Typography>
+              </Box>
+            ) : (
+              <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }} sx={{ mb: 3 }}>
+                {nrKpis.map((kpi) => (
+                  <Grid item xs={6} sm={6} md={3} key={kpi.id}>
+                    <StyledCard>
+                      <CardContent>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <Typography variant="subtitle2" color="text.secondary">
+                            {kpi.name}
+                          </Typography>
+                          {kpi.status && (
+                            <FiberManualRecordIcon 
+                              fontSize="small" 
+                              sx={{ color: getStatusColor(kpi.status) }} 
+                            />
+                          )}
+                        </Box>
+                        <Typography variant="h5" component="div" fontWeight="bold" sx={{ my: 1 }}>
+                          {formatMetricValue(kpi.value, kpi.unit)}
                         </Typography>
-                        {kpi.status && (
-                          <FiberManualRecordIcon 
-                            fontSize="small" 
-                            sx={{ color: getStatusColor(kpi.status) }} 
-                          />
-                        )}
-                      </Box>
-                      <Typography variant="h5" component="div" fontWeight="bold" sx={{ my: 1 }}>
-                        {formatMetricValue(kpi.value, kpi.unit)}
-                      </Typography>
-                    </CardContent>
-                  </StyledCard>
-                </Grid>
-              ))}
-            </Grid>
+                      </CardContent>
+                    </StyledCard>
+                  </Grid>
+                ))}
+              </Grid>
+            )}
             
             {/* NR Data Table */}
-            {nrData.length > 0 && (
+            {!loading && nrData.length > 0 && (
               <Box sx={{ mt: 4, height: 500 }}>
                 <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
                   NR Cell Details

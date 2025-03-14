@@ -300,4 +300,50 @@ You can switch between environments using:
 .\switch_env.ps1 -Environment production
 ```
 
-This will copy the appropriate .env file and set necessary environment variables. 
+This will copy the appropriate .env file and set necessary environment variables.
+
+## Production Deployment
+
+This codebase has been prepared for production deployment. The following steps have been taken:
+
+1. Development-specific files have been removed:
+   - Development environment configuration files
+   - Local development setup scripts
+   - Deployment scripts (these should be managed separately in production)
+
+2. Production environment is set as the default:
+   - `.env.production` has been copied to `.env`
+   - All configuration is set for production use
+
+### Deployment Instructions
+
+1. Clone this repository to your production server
+2. Create a new Python virtual environment:
+   ```
+   python -m venv venv
+   source venv/bin/activate  # On Linux/Mac
+   # OR
+   .\venv\Scripts\Activate.ps1  # On Windows
+   ```
+3. Install dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+4. Set up the database:
+   ```
+   python manage.py migrate
+   python manage.py collectstatic
+   ```
+5. Build the frontend:
+   ```
+   cd fwpm_frontend
+   npm install
+   npm run build
+   ```
+6. Configure your web server (Nginx, Apache, etc.) to serve the application
+7. Start the application using Gunicorn:
+   ```
+   gunicorn fwpm_backend.wsgi:application
+   ```
+
+For detailed deployment instructions, refer to the `DEPLOYMENT.md` file. 
